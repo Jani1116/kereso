@@ -6,20 +6,15 @@
     <title>Magyar Segéd Pro</title>
     <style>
         body { font-family: sans-serif; background-color: #2c3e50; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        /* 2x nagyobb ablak */
         .app-card { background-color: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 95%; max-width: 600px; text-align: center; }
-        
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn-blue { flex: 1; padding: 20px; background-color: #2980b9; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
         .btn-gold { flex: 1; padding: 20px; background-color: #d4af37; color: white; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; }
-        
-        .data-display { background-color: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; text-align: left; min-height: 100px; }
-        
-        /* Arany táblázat stílusa */
+        .data-display { background-color: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; text-align: left; min-height: 120px; font-size: 18px; line-height: 1.6; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border-bottom: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { color: #d4af37; }
-
+        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { color: #d4af37; font-size: 16px; }
+        td { font-weight: bold; }
         input { width: 100%; padding: 15px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 18px; }
         .btn-search { width: 100%; padding: 15px; background-color: #27ae60; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; }
     </style>
@@ -32,7 +27,7 @@
             <button class="btn-gold" onclick="getArany()">ARANY</button>
         </div>
 
-        <div id="kijelzo" class="data-display">Itt jelennek meg az adatok...</div>
+        <div id="kijelzo" class="data-display">Nyomj meg egy gombot az adatokhoz...</div>
 
         <input type="text" id="szo" placeholder="Google keresés...">
         <button class="btn-search" onclick="indit()">KERESÉS</button>
@@ -46,30 +41,43 @@
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 const r = data.rates;
-                const usd = (r.HUF / r.USD).toFixed(1);
-                const gbp = (r.HUF / r.GBP).toFixed(1);
-                const eur = r.HUF.toFixed(1);
+                const eur = Math.round(r.HUF);
+                const usd = Math.round(r.HUF / r.USD);
+                const gbp = Math.round(r.HUF / r.GBP);
 
                 kijelzo.innerHTML = `
-                    <b>Aktuális árfolyamok:</b><br>
-                    1 EUR = ${eur} Ft<br>
-                    1 GBP = ${gbp} Ft<br>
-                    1 USD = ${usd} Ft
+                    <div style="color: #2980b9; font-weight: bold; margin-bottom: 10px;">Élő árfolyamok:</div>
+                    1 EUR = <b>${eur} Ft</b><br>
+                    1 GBP = <b>${gbp} Ft</b><br>
+                    1 USD = <b>${usd} Ft</b>
                 `;
-            } catch (e) { kijelzo.innerText = "Hiba az adatoknál."; }
+            } catch (e) { kijelzo.innerText = "Hiba az árfolyamoknál."; }
         }
 
-        function getArany() {
-            // Mivel az arany árfolyam API-k gyakran fizetősek, itt a világpiaci aranyárból számolt becsült hazai árakat mutatjuk
+        async function getArany() {
             const kijelzo = document.getElementById('kijelzo');
-            kijelzo.innerHTML = `
-                <table>
-                    <tr><th>Karát</th><th>Ár (Ft/g)</th></tr>
-                    <tr><td>14K (törtarany)</td><td>~18.500 Ft</td></tr>
-                    <tr><td>18K (ékszer)</td><td>~23.800 Ft</td></tr>
-                    <tr><td>24K (tömb)</td><td>~32.100 Ft</td></tr>
-                </table>
-            `;
+            kijelzo.innerHTML = "Frissítés...";
+            try {
+                // Ingyenes aranyár lekérés a Coinbase-től (HUF-ban)
+                const res = await fetch('https://api.coinbase.com/v2/prices/XAU-HUF/spot');
+                const data = await res.json();
+                const szinarany = Math.round(parseFloat(data.data.amount) / 31.1035); // Uncia -> Gramm
+
+                const k18 = Math.round(szinarany * 0.750);
+                const k14 = Math.round(szinarany * 0.585);
+
+                kijelzo.innerHTML = `
+                    <table>
+                        <tr><th>Karát</th><th>Aktuális ár (Ft/g)</th></tr>
+                        <tr><td>14K (585)</td><td>${k14.toLocaleString()} Ft</td></tr>
+                        <tr><td>18K (750)</td><td>${k18.toLocaleString()} Ft</td></tr>
+                        <tr><td>24K (Színarany)</td><td>${szinarany.toLocaleString()} Ft</td></tr>
+                    </table>
+                    <small style="color: gray; font-size: 11px;">*Frissítve a világpiaci ár alapján (pár perc késéssel)</small>
+                `;
+            } catch (e) { 
+                kijelzo.innerText = "Hiba az aranyár lekérésekor."; 
+            }
         }
 
         function indit() {
