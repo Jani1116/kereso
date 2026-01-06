@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Kereső</title>
+</head>
+<body>
+    <input type="text" id="szo" placeholder="Mit keressek?" style="width:80%; padding:10px;">
+    <button onclick="indit()" style="padding:10px;">MEHET</button>
+
+    <script>
+        function indit() {
+            var bevitel = document.getElementById('szo').value;
+            // Beszéd
+            var hang = new SpeechSynthesisUtterance("Keresem: " + bevitel);
+            hang.lang = 'hu-HU';
+            window.speechSynthesis.speak(hang);
+            
+            // Keresés (ugyanabban az ablakban, hogy ne blokkolja a tablet)
+            setTimeout(function(){
+                window.location.href = "https://www.google.com/search?q=" + bevitel;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
