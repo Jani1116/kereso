@@ -27,7 +27,7 @@
             <button class="btn-gold" onclick="getArany()">ARANY</button>
         </div>
 
-        <div id="kijelzo" class="data-display">Nyomj meg egy gombot az adatokhoz...</div>
+        <div id="kijelzo" class="data-display">Nyomj meg egy gombot...</div>
 
         <input type="text" id="szo" placeholder="Google keresés...">
         <button class="btn-search" onclick="indit()">KERESÉS</button>
@@ -41,9 +41,11 @@
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 const r = data.rates;
-                const eur = Math.round(r.HUF);
-                const usd = Math.round(r.HUF / r.USD);
-                const gbp = Math.round(r.HUF / r.GBP);
+                
+                // .toFixed(2) biztosítja a két tizedesjegyet
+                const eur = (r.HUF).toFixed(2);
+                const usd = (r.HUF / r.USD).toFixed(2);
+                const gbp = (r.HUF / r.GBP).toFixed(2);
 
                 kijelzo.innerHTML = `
                     <div style="color: #2980b9; font-weight: bold; margin-bottom: 10px;">Élő árfolyamok:</div>
@@ -58,26 +60,24 @@
             const kijelzo = document.getElementById('kijelzo');
             kijelzo.innerHTML = "Frissítés...";
             try {
-                // Ingyenes aranyár lekérés a Coinbase-től (HUF-ban)
                 const res = await fetch('https://api.coinbase.com/v2/prices/XAU-HUF/spot');
                 const data = await res.json();
-                const szinarany = Math.round(parseFloat(data.data.amount) / 31.1035); // Uncia -> Gramm
+                const szinarany = parseFloat(data.data.amount) / 31.1035;
 
+                const k24 = Math.round(szinarany);
                 const k18 = Math.round(szinarany * 0.750);
                 const k14 = Math.round(szinarany * 0.585);
 
                 kijelzo.innerHTML = `
                     <table>
-                        <tr><th>Karát</th><th>Aktuális ár (Ft/g)</th></tr>
+                        <tr><th>Karát</th><th>Ár (Ft/g)</th></tr>
                         <tr><td>14K (585)</td><td>${k14.toLocaleString()} Ft</td></tr>
                         <tr><td>18K (750)</td><td>${k18.toLocaleString()} Ft</td></tr>
-                        <tr><td>24K (Színarany)</td><td>${szinarany.toLocaleString()} Ft</td></tr>
+                        <tr><td>24K (Szín)</td><td>${k24.toLocaleString()} Ft</td></tr>
                     </table>
-                    <small style="color: gray; font-size: 11px;">*Frissítve a világpiaci ár alapján (pár perc késéssel)</small>
+                    <small style="color: gray; font-size: 11px;">*Világpiaci ár (pár perc késéssel)</small>
                 `;
-            } catch (e) { 
-                kijelzo.innerText = "Hiba az aranyár lekérésekor."; 
-            }
+            } catch (e) { kijelzo.innerText = "Hiba az aranyárnál."; }
         }
 
         function indit() {
