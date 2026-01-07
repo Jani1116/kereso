@@ -10,14 +10,14 @@
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         .btn-blue, .btn-gold, .btn-green { flex: 1; padding: 15px; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .btn-blue { background-color: #2980b9; } .btn-gold { background-color: #d4af37; } .btn-green { background-color: #27ae60; }
-        .data-display { background-color: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; text-align: left; overflow-x: auto; }
+        .data-display { background-color: #f8f9fa; border-radius: 10px; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; text-align: left; overflow-x: auto; min-height: 80px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         th { background-color: #eee; }
         input { width: 100%; padding: 10px; margin-bottom: 8px; border: 2px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .calc-row { display: flex; gap: 10px; text-align: left; flex-wrap: wrap; }
+        .calc-row { display: flex; gap: 10px; text-align: left; flex-wrap: wrap; margin-bottom: 10px; }
         .calc-row div { flex: 1; min-width: 140px; }
-        .mehet-btn { width: 100%; padding: 15px; background-color: #8e44ad; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .mehet-btn { width: 100%; padding: 15px; background-color: #8e44ad; color: white; border: none; border-radius: 10px; font-size: 18px; cursor: pointer; font-weight: bold; }
         .footer-val { font-weight: bold; color: #27ae60; font-size: 16px; }
     </style>
 </head>
@@ -29,7 +29,7 @@
             <button class="btn-gold" onclick="getArany()">ARANY</button>
             <button class="btn-green" onclick="mutatBerPanel()">MUNKABÉR</button>
         </div>
-        <div id="kijelzo" class="data-display">Válassz egy funkciót!</div>
+        <div id="kijelzo" class="data-display">Nyomj meg egy gombot...</div>
         <input type="text" id="szo" placeholder="Google keresés...">
         <button class="btn-blue" style="width:100%;" onclick="indit()">KERESÉS</button>
     </div>
@@ -37,6 +37,38 @@
     <script>
         function formatNumber(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
         function cleanNumber(s) { return parseInt(s.toString().replace(/\D/g, '')) || 0; }
+
+        async function getValuta() {
+            const k = document.getElementById('kijelzo');
+            k.innerHTML = "Frissítés...";
+            try {
+                const res = await fetch('https://open.er-api.com/v6/latest/EUR');
+                const data = await res.json();
+                const r = data.rates;
+                k.innerHTML = `
+                    <div style="color: #2980b9; font-weight: bold; margin-bottom: 5px;">Élő árfolyamok:</div>
+                    1 EUR = <b>${r.HUF.toFixed(2)} Ft</b><br>
+                    1 GBP = <b>${(r.HUF / r.GBP).toFixed(2)} Ft</b><br>
+                    1 USD = <b>${(r.HUF / r.USD).toFixed(2)} Ft</b>`;
+            } catch (e) { k.innerText = "Hiba az árfolyamnál."; }
+        }
+
+        async function getArany() {
+            const k = document.getElementById('kijelzo');
+            k.innerHTML = "Frissítés...";
+            try {
+                const res = await fetch('https://api.coinbase.com/v2/prices/XAU-HUF/spot');
+                const data = await res.json();
+                const gramm = parseFloat(data.data.amount) / 31.1035;
+                k.innerHTML = `
+                    <table>
+                        <tr><th>Karát</th><th>Ár (Ft/g)</th></tr>
+                        <tr><td>14K (585)</td><td>${Math.round(gramm*0.585).toLocaleString()} Ft</td></tr>
+                        <tr><td>18K (750)</td><td>${Math.round(gramm*0.750).toLocaleString()} Ft</td></tr>
+                        <tr><td>24K (Szín)</td><td>${Math.round(gramm).toLocaleString()} Ft</td></tr>
+                    </table>`;
+            } catch (e) { k.innerText = "Hiba az aranyárnál."; }
+        }
 
         function mutatBerPanel() {
             document.getElementById('kijelzo').innerHTML = `
@@ -56,7 +88,6 @@
             if (gyerek === 1) kedv = 20000;
             else if (gyerek === 2) kedv = 80000;
             else kedv = gyerek * 66000;
-            // A kedvezmény nem lehet több, mint az adók (SZJA + TB)
             return Math.min(kedv, brutto * 0.335);
         }
 
@@ -69,7 +100,6 @@
                 bInp.value = formatNumber(br);
             } else {
                 let nt = cleanNumber(nInp.value);
-                // Közelítő bruttó számítás kedvezmény esetén
                 br = Math.max(0, Math.round((nt - getCsaladiKedvezmeny(nt/0.665, gy)) / 0.665));
                 bInp.value = formatNumber(br);
                 nInp.value = formatNumber(nt);
@@ -81,16 +111,10 @@
             const gy = parseInt(document.getElementById('gyerekInp').value) || 0;
             const kedv = getCsaladiKedvezmeny(br, gy);
             const nt = Math.round(br * 0.665) + kedv;
-
-            const szja = Math.round(br * 0.15);
-            const tb = Math.round(br * 0.185);
-            const szocho = Math.round(br * 0.13);
-            
-            // TB kiegészítés (ha br < minimálbér 30%-a, ami 2026-ban 96 840 Ft)
+            const szja = Math.round(br * 0.15), tb = Math.round(br * 0.185), szocho = Math.round(br * 0.13);
             const kuszob = 96840;
-            const tbKieg = br < kuszob ? Math.round((kuszob - br) * 0.185) : 0;
-            const szochoKieg = br < kuszob ? Math.round((kuszob - br) * 0.13) : 0;
-            
+            const tbKieg = br < kuszob && br > 0 ? Math.round((kuszob - br) * 0.185) : 0;
+            const szochoKieg = br < kuszob && br > 0 ? Math.round((kuszob - br) * 0.13) : 0;
             const munkaltatoOsszes = br + szocho + tbKieg + szochoKieg;
 
             document.getElementById('tablazatHelye').innerHTML = `
@@ -109,26 +133,11 @@
                     </tr>
                 </table>`;
         }
-        
-        // Eredeti API hívások (rövidítve)
-        async function getValuta() {
-            const k = document.getElementById('kijelzo'); k.innerText = "Töltés...";
-            try {
-                const res = await fetch('https://open.er-api.com/v6/latest/EUR');
-                const d = await res.json();
-                k.innerHTML = `1 EUR = ${d.rates.HUF.toFixed(2)} Ft<br>1 USD = ${(d.rates.HUF/d.rates.USD).toFixed(2)} Ft`;
-            } catch(e) { k.innerText = "Hiba."; }
+
+        function indit() {
+            const s = document.getElementById('szo').value;
+            if (s) window.location.href = "https://www.google.com/search?q=" + encodeURIComponent(s);
         }
-        async function getArany() {
-            const k = document.getElementById('kijelzo'); k.innerText = "Töltés...";
-            try {
-                const res = await fetch('https://api.coinbase.com/v2/prices/XAU-HUF/spot');
-                const d = await res.json();
-                const g = parseFloat(d.data.amount)/31.1035;
-                k.innerHTML = `24K Arany: ${Math.round(g).toLocaleString()} Ft/g`;
-            } catch(e) { k.innerText = "Hiba."; }
-        }
-        function indit() { window.location.href = "https://www.google.com/search?q=" + encodeURIComponent(document.getElementById('szo').value); }
     </script>
 </body>
 </html>
