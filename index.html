@@ -35,7 +35,6 @@
     </div>
 
     <script>
-        // Időtálló adókulcsok
         let kulcsok = { szja: 15, tb: 18.5, szocho: 13, min30: 96840 };
 
         function formatNumber(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
@@ -52,7 +51,7 @@
                     1 EUR = <b>${r.HUF.toFixed(2)} Ft</b><br>
                     1 USD = <b>${(r.HUF / r.USD).toFixed(2)} Ft</b><br>
                     1 GBP = <b>${(r.HUF / r.GBP).toFixed(2)} Ft</b>`;
-            } catch(e) { k.innerText = "Hiba az adatok lekérésekor."; }
+            } catch(e) { k.innerText = "Hiba az adatoknál."; }
         }
 
         async function getArany() {
@@ -68,7 +67,7 @@
                         <tr><td>18K (750)</td><td><b>${Math.round(gramm*0.750).toLocaleString()} Ft</b></td></tr>
                         <tr><td>24K (Szín)</td><td><b>${Math.round(gramm).toLocaleString()} Ft</b></td></tr>
                     </table>`;
-            } catch(e) { k.innerText = "Hiba az aranyár lekérésekor."; }
+            } catch(e) { k.innerText = "Hiba az adatoknál."; }
         }
 
         function mutatBerPanel() {
@@ -144,7 +143,7 @@
                     <tr><td colspan="4"><b>Bruttó: ${formatNumber(br)} Ft | Nettó: ${formatNumber(nt)} Ft</b></td></tr>
                     <tr><td>SZJA (${kulcsok.szja}%)</td><td>${formatNumber(szjaVal)} Ft</td><td>Szocho (${kulcsok.szocho}%)</td><td>${formatNumber(szochoVal)} Ft</td></tr>
                     <tr><td>TB járulék (${kulcsok.tb}%)</td><td>${formatNumber(tbVal)} Ft</td><td>TB kiegészítés</td><td>${tbKieg > 0 ? formatNumber(tbKieg) + ' Ft' : '-'}</td></tr>
-                    <tr><td><i>Családi kedv.</i></td><td><i>+${formatNumber(kedv)} Ft</i></td><td colspan="2" style="font-size:10px">Munkáltató fizeti (bruttó összeg)-on felül</td></tr>
+                    <tr><td><i>Családi kedv.</i></td><td><i>+${formatNumber(kedv)} Ft</i></td><td colspan="2" style="font-size:10px">Munkáltató fizeti ${formatNumber(br)} Ft-on felül</td></tr>
                     <tr>
                         <td colspan="2"></td>
                         <td colspan="2">
