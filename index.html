@@ -13,7 +13,7 @@
         .container { max-width: 450px; margin: auto; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; border: 1px solid var(--border); }
         h1 { font-size: 28px; margin-bottom: 30px; letter-spacing: -0.5px; }
         .main-btn { display: flex; align-items: center; justify-content: center; background: #262626; color: white; padding: 18px 25px; margin: 12px auto; border: 1px solid var(--border); border-radius: 16px; font-size: 17px; font-weight: 500; transition: all 0.2s ease; width: 100%; box-sizing: border-box; cursor: pointer; }
-        .main-btn:active { transform: scale(0.95); background: #333; }
+        .main-btn:active { transform: scale(0.98); background: #333; }
         .main-btn i { font-size: 20px; margin-right: 12px; font-style: normal; }
         .back-btn { background: transparent; color: #8e8e93; margin-top: 20px; border: 1px solid #333; width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; }
         .calc-btn { background: var(--accent); color: white; margin-top: 20px; border: none; width: 100%; padding: 15px; border-radius: 16px; font-weight: bold; cursor: pointer; }
@@ -27,7 +27,7 @@
         .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .tax-item span { font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-bottom: 5px; }
         .tax-input-wrap { display: flex; align-items: center; gap: 4px; }
-        .tax-item input { width: 45px; padding: 6px 2px; font-size: 12px; text-align: center; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: white; }
+        .tax-item input { width: 45px; padding: 6px 2px; font-size: 12px; text-align: center; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; }
         .tax-item input:read-only { color: #888; border-color: #333; }
         
         .lock-btn { width: 22px; height: 22px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
@@ -39,32 +39,25 @@
         .green-val { color: var(--success); font-size: 24px; font-weight: 700; display: block; }
         .rate-box { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .rate-box i { margin-right: 10px; font-style: normal; }
-        .update-info { font-size: 10px; color: #555; margin-top: 10px; }
     </style>
 </head>
 <body>
-
 <div class="container" id="main-menu">
-    <h1>Pénzügy 2026</h1>
+    <h1>Pénzügy</h1>
     <button class="main-btn" onclick="showScreen('arany-screen', loadGold)"><i>🟡</i> Arany Árfolyam</button>
     <button class="main-btn" onclick="showScreen('arfolyam-screen', loadRates)"><i>🏦</i> Valuta Árfolyamok</button>
     <button class="main-btn" onclick="showScreen('ber-screen')"><i>💳</i> Bérkalkulátor</button>
 </div>
-
 <div class="container hidden" id="arany-screen">
     <h2>Arany (Ft/g)</h2>
     <div id="gold-result"></div>
-    <div class="update-info">Forrás: Tőzsdei világpiaci ár (XAU)</div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
-
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta</h2>
     <div id="rates-result"></div>
-    <div class="update-info">Frissítve: Éppen most</div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
-
 <div class="container hidden" id="ber-screen">
     <h2>Bérkalkulátor</h2>
     <div class="input-group"><label>Nettó bér</label><input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
@@ -105,97 +98,81 @@
     </div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
-
 <script>
     let rawBrutto = 0; let rawNetto = 0;
     const MINIMÁLBÉR_2026 = 300000; const TB_ALAP_MINIMUM = MINIMÁLBÉR_2026 * 0.3;
-
+    
     function showScreen(id, callback) { 
         document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
         document.getElementById(id).classList.remove('hidden'); 
         if (callback) callback(); 
     }
-
-    function toggleLock(inputId, btn) { 
-        const input = document.getElementById(inputId); 
-        input.readOnly = !input.readOnly; 
-        btn.classList.toggle('unlocked'); 
-        btn.innerText = input.readOnly ? "□" : "✔"; 
-    }
-
+    
+    function toggleLock(inputId, btn) { const input = document.getElementById(inputId); input.readOnly = !input.readOnly; btn.classList.toggle('unlocked'); btn.innerText = input.readOnly ? "□" : "✔"; }
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
-
+    
     function handleInput(el, type) {
         let val = el.value.replace(/\D/g, ""); let num = parseInt(val) || 0;
         const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100;
         const tbP = parseFloat(document.getElementById('tax-tb').value) / 100;
-        if (type === 'brutto') { 
-            rawBrutto = num; 
-            let szja = Math.max(0, (rawBrutto * szjaP) - getKedvezmeny()); 
-            rawNetto = rawBrutto - szja - (rawBrutto * tbP); 
-        } else { 
-            rawNetto = num; 
-            rawBrutto = (rawNetto - getKedvezmeny()) / (1 - szjaP - tbP); 
-        }
+        if (type === 'brutto') { rawBrutto = num; let szja = Math.max(0, (rawBrutto * szjaP) - getKedvezmeny()); rawNetto = rawBrutto - szja - (rawBrutto * tbP); }
+        else { rawNetto = num; rawBrutto = (rawNetto - getKedvezmeny()) / (1 - szjaP - tbP); }
         document.getElementById('brutto-input').value = rawBrutto > 0 ? format(rawBrutto) + " Ft" : "";
         document.getElementById('netto-input').value = rawNetto > 0 ? format(rawNetto) + " Ft" : "";
     }
-
-    function getKedvezmeny() { 
-        let gy = parseInt(document.getElementById('gyerekek').value) || 0; 
-        if (gy === 1) return 10000; if (gy === 2) return 40000; return gy >= 3 ? gy * 33000 : 0; 
-    }
-
+    
+    function getKedvezmeny() { let gy = parseInt(document.getElementById('gyerekek').value) || 0; if (gy === 1) return 10000; if (gy === 2) return 40000; return gy >= 3 ? gy * 33000 : 0; }
     function recalculate() { handleInput(document.getElementById('brutto-input'), 'brutto'); }
-
+    
     function calculateFinal() {
-        const b = Math.max(0, rawBrutto); 
-        const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100; 
-        const tbP = parseFloat(document.getElementById('tax-tb').value) / 100; 
-        const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
-        const szja = Math.max(0, (b * szjaP) - getKedvezmeny()); 
-        const tb = b * tbP; 
-        const szocho = b * szochoP;
+        const b = Math.max(0, rawBrutto); const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100; const tbP = parseFloat(document.getElementById('tax-tb').value) / 100; const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
+        const szja = Math.max(0, (b * szjaP) - getKedvezmeny()); const tb = b * tbP; const szocho = b * szochoP;
         let tbKieg = (b > 0 && b < TB_ALAP_MINIMUM) ? (TB_ALAP_MINIMUM - b) * tbP : 0;
-        document.getElementById('h-net').innerText = format(rawNetto); 
-        document.getElementById('h-brut').innerText = format(b);
+        document.getElementById('h-net').innerText = format(rawNetto); document.getElementById('h-brut').innerText = format(b);
         document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft`;
         document.getElementById('res-list-right').innerHTML = `Szocho: ${format(szocho)} Ft<br>${tbKieg > 0 ? '<b>TB kieg: ' + format(tbKieg) + ' Ft</b>' : ''}`;
         document.getElementById('res-netto-nelkul').innerText = format(szja + tb + szocho + tbKieg) + " Ft";
         document.getElementById('res-teljes').innerText = format(b + szocho + tbKieg);
         document.getElementById('results').classList.remove('hidden');
     }
-
+    
     async function loadRates() {
-        const resDiv = document.getElementById('rates-result');
-        resDiv.innerHTML = "Frissítés...";
-        try {
-            const res = await fetch('https://open.er-api.com/v6/latest/EUR');
-            const data = await res.json();
-            const huf = data.rates.HUF;
-            const usd = huf / data.rates.USD;
-            const gbp = huf / data.rates.GBP;
+        const resDiv = document.getElementById('rates-result'); resDiv.innerHTML = "Lekérés...";
+        try { 
+            const res = await fetch('https://open.er-api.com/v6/latest/HUF'); 
+            const data = await res.json(); 
+            const r = data.rates;
             resDiv.innerHTML = `
-                <div class="rate-box"><span><i>🇪🇺</i> Euro (EUR)</span> <b>${huf.toFixed(2)} Ft</b></div>
-                <div class="rate-box"><span><i>🇺🇸</i> Dollár (USD)</span> <b>${usd.toFixed(2)} Ft</b></div>
-                <div class="rate-box"><span><i>🇬🇧</i> Font (GBP)</span> <b>${gbp.toFixed(2)} Ft</b></div>`;
-        } catch(e) { resDiv.innerHTML = "Hiba! Ellenőrizd a netet."; }
+                <div class="rate-box"><span><i>🇪🇺</i> Euro (EUR)</span> <b>${(1/r.EUR).toFixed(2)} Ft</b></div>
+                <div class="rate-box"><span><i>🇺🇸</i> Dollár (USD)</span> <b>${(1/r.USD).toFixed(2)} Ft</b></div>
+                <div class="rate-box"><span><i>🇬🇧</i> Font (GBP)</span> <b>${(1/r.GBP).toFixed(2)} Ft</b></div>`;
+        } catch(e) { resDiv.innerHTML = "Hiba! Nincs internet."; }
     }
-
+    
     async function loadGold() {
-        const resDiv = document.getElementById('gold-result');
-        resDiv.innerHTML = "Arany árfolyam lekérése...";
+        const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
         try {
-            const res = await fetch('https://api.exchangerate-api.com/v4/latest/XAU');
+            // Stabilabb API végpont az aranyhoz (HUF bázison)
+            const res = await fetch('https://open.er-api.com/v6/latest/HUF');
             const data = await res.json();
-            const priceInHuf = data.rates.HUF;
-            const grammPrice = priceInHuf / 31.1035; // Uncia -> Gramm konverzió
+            const hufPerUsd = 1 / data.rates.USD;
+            
+            // Másodlagos lekérés az aktuális aranyárhoz (USD/uncia)
+            const goldRes = await fetch('https://api.gold-api.com/price/XAU');
+            const goldData = await goldRes.json();
+            
+            const g = (goldData.price * hufPerUsd) / 31.1035;
+            
             resDiv.innerHTML = `
-                <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(grammPrice)} Ft</b></div>
-                <div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(grammPrice * 0.916)} Ft</b></div>
-                <div class="rate-box"><span><i>✨</i> 18k (750)</span> <b>${format(grammPrice * 0.75)} Ft</b></div>
-                <div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(grammPrice * 0.585)} Ft</b></div>`;
-        } catch(e) { resDiv.innerHTML = "Az arany árfolyam nem elérhető."; }
+                <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div>
+                <div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(g * 0.916)} Ft</b></div>
+                <div class="rate-box"><span><i>✨</i> 18k (750)</span> <b>${format(g * 0.75)} Ft</b></div>
+                <div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(g * 0.585)} Ft</b></div>
+                <div class="rate-box"><span><i>🛠️</i> 10k (417)</span> <b>${format(g * 0.417)} Ft</b></div>
+                <div class="rate-box"><span><i>🥈</i> 9k (375)</span> <b>${format(g * 0.375)} Ft</b></div>`;
+        } catch(e) { 
+            resDiv.innerHTML = "Hiba az adatoknál. Próbáld újra később."; 
+        }
     }
 </script>
 </body>
