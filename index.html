@@ -21,12 +21,19 @@
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; font-size: 13px; color: #8e8e93; text-transform: uppercase; }
         input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; box-sizing: border-box; text-align: right; font-size: 18px; color: white; }
-        input:read-only { color: #888; background: #1a1a1a; }
-        .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; text-align: left; }
-        .tax-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
-        .tax-row input { width: 60px; padding: 5px; font-size: 13px; text-align: center; border-radius: 6px; border: 1px solid #444; }
-        .lock-btn { width: 24px; height: 24px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; }
+        
+        /* ADÓKULCSOK EGY SORBAN */
+        .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; }
+        .tax-row-container { display: flex; justify-content: space-between; gap: 10px; }
+        .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .tax-item span { font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-bottom: 5px; }
+        .tax-input-wrap { display: flex; align-items: center; gap: 4px; }
+        .tax-item input { width: 45px; padding: 6px 2px; font-size: 12px; text-align: center; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; }
+        .tax-item input:read-only { color: #888; border-color: #333; }
+        
+        .lock-btn { width: 22px; height: 22px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
         .lock-btn.unlocked { border-color: var(--accent); color: var(--accent); }
+
         .summary-header { background: #2c2c2e; padding: 20px; border-radius: 16px; margin: 20px 0; display: flex; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 20px; }
         .final-box { background: rgba(48, 209, 88, 0.1); border: 1px solid var(--success); padding: 20px; border-radius: 16px; margin-top: 20px; text-align: left; }
@@ -57,11 +64,33 @@
     <div class="input-group"><label>Nettó bér</label><input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
     <div class="input-group"><label>Bruttó bér</label><input type="text" id="brutto-input" oninput="handleInput(this, 'brutto')" placeholder="0 Ft"></div>
     <div class="input-group"><label>18 év alatti gyerekek</label><input type="number" id="gyerekek" value="0" min="0" oninput="recalculate()"></div>
+    
     <div class="tax-settings">
-        <div class="tax-row"><span>SZJA (%):</span><input type="number" id="tax-szja" value="15" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-szja', this)">□</button></div>
-        <div class="tax-row"><span>TB (%):</span><input type="number" id="tax-tb" value="18.5" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-tb', this)">□</button></div>
-        <div class="tax-row"><span>Szocho (%):</span><input type="number" id="tax-szocho" value="13" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-szocho', this)">□</button></div>
+        <div class="tax-row-container">
+            <div class="tax-item">
+                <span>SZJA %</span>
+                <div class="tax-input-wrap">
+                    <input type="number" id="tax-szja" value="15" step="0.5" readonly>
+                    <button class="lock-btn" onclick="toggleLock('tax-szja', this)">□</button>
+                </div>
+            </div>
+            <div class="tax-item">
+                <span>TB %</span>
+                <div class="tax-input-wrap">
+                    <input type="number" id="tax-tb" value="18.5" step="0.5" readonly>
+                    <button class="lock-btn" onclick="toggleLock('tax-tb', this)">□</button>
+                </div>
+            </div>
+            <div class="tax-item">
+                <span>Szocho %</span>
+                <div class="tax-input-wrap">
+                    <input type="number" id="tax-szocho" value="13" step="0.5" readonly>
+                    <button class="lock-btn" onclick="toggleLock('tax-szocho', this)">□</button>
+                </div>
+            </div>
+        </div>
     </div>
+
     <button class="calc-btn" onclick="calculateFinal()">Kalkuláció futtatása</button>
     <div id="results" class="hidden">
         <div class="summary-header"><div><small>Nettó</small><br><strong id="h-net">0</strong> Ft</div><div><small>Bruttó</small><br><strong id="h-brut">0</strong> Ft</div></div>
@@ -109,8 +138,6 @@
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/USD'); const data = await res.json();
             const hufRate = data.rates.HUF;
-            // A legelső kódod logikája: Dollár árfolyam * fix arany szorzó
-            // 2026-os reális szorzó (dollár/gramm): kb. 88.5
             const g = hufRate * 88.5;
             resDiv.innerHTML = `<div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div><div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(g * 0.916)} Ft</b></div><div class="rate-box"><span><i>✨</i> 18k (750)</span> <b>${format(g * 0.75)} Ft</b></div><div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(g * 0.585)} Ft</b></div><div class="rate-box"><span><i>🛠️</i> 10k (417)</span> <b>${format(g * 0.417)} Ft</b></div><div class="rate-box"><span><i>🥈</i> 9k (375)</span> <b>${format(g * 0.375)} Ft</b></div>`;
         } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
