@@ -16,13 +16,14 @@
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #7f8c8d; }
         input { width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px; box-sizing: border-box; text-align: right; font-size: 16px; font-weight: bold; }
         
-        /* Adókulcs szerkesztő stílusa */
-        .tax-settings { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; border: 1px dashed #bdc3c7; }
+        /* Adókulcs szerkesztő */
+        .tax-settings { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; border: 1px solid #ddd; }
         .tax-settings h4 { margin: 0 0 10px 0; font-size: 14px; color: #2c3e50; }
-        .tax-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .tax-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
         .tax-row span { font-size: 13px; flex: 1; }
-        .tax-row input { width: 60px; padding: 5px; font-size: 13px; margin-right: 5px; text-align: center; }
-        .change-btn { width: auto; padding: 5px 10px; font-size: 11px; margin: 0; background: #e67e22; color: white; border-radius: 5px; }
+        .tax-row input { width: 80px; background: #eee; cursor: not-allowed; }
+        .tax-row input.active { background: white; border-color: #e67e22; cursor: text; }
+        .edit-btn { width: auto; padding: 8px 12px; font-size: 12px; margin: 0; background: #e67e22; color: white; border-radius: 8px; }
 
         .summary-header { background: #34495e; color: white; padding: 15px; border-radius: 12px; margin: 20px 0; display: flex; justify-content: space-around; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; border-top: 2px solid #ecf0f1; padding-top: 20px; }
@@ -61,18 +62,18 @@
         <h4>Adókulcsok beállítása</h4>
         <div class="tax-row">
             <span>SZJA (%):</span>
-            <input type="number" id="tax-szja" value="15" step="0.5">
-            <button class="change-btn" onclick="recalculate()">Változás</button>
+            <input type="number" id="tax-szja" value="15" step="0.5" readonly>
+            <button class="edit-btn" onclick="enableEdit('tax-szja')">Módosítás</button>
         </div>
         <div class="tax-row">
             <span>TB (%):</span>
-            <input type="number" id="tax-tb" value="18.5" step="0.5">
-            <button class="change-btn" onclick="recalculate()">Változás</button>
+            <input type="number" id="tax-tb" value="18.5" step="0.5" readonly>
+            <button class="edit-btn" onclick="enableEdit('tax-tb')">Módosítás</button>
         </div>
         <div class="tax-row">
             <span>Szocho (%):</span>
-            <input type="number" id="tax-szocho" value="13" step="0.5">
-            <button class="change-btn" onclick="recalculate()">Változás</button>
+            <input type="number" id="tax-szocho" value="13" step="0.5" readonly>
+            <button class="edit-btn" onclick="enableEdit('tax-szocho')">Módosítás</button>
         </div>
     </div>
     
@@ -83,7 +84,6 @@
             <div>Nettó: <span id="h-net">0</span> Ft</div>
             <div>Bruttó: <span id="h-brut">0</span> Ft</div>
         </div>
-
         <div class="grid">
             <div class="col">
                 <h3>Levonások</h3>
@@ -94,7 +94,6 @@
                 <div id="res-list-right"></div>
             </div>
         </div>
-        
         <div class="final-box">
             Munkáltató kiadása nettó nélkül:
             <span class="green-val" id="res-netto-nelkul">0 Ft</span>
@@ -103,7 +102,6 @@
             </div>
         </div>
     </div>
-    
     <button class="back-btn" style="margin-top: 25px;" onclick="showScreen('main-menu')">Vissza</button>
 </div>
 
@@ -112,7 +110,6 @@
     <div id="rates-result" style="font-size: 22px; margin: 30px 0;">Betöltés...</div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
-
 <div class="container hidden" id="arany-screen">
     <h2>Arany Árak (gramm)</h2>
     <div id="gold-result" style="font-size: 22px; margin: 30px 0;">Betöltés...</div>
@@ -127,6 +124,20 @@
         document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
         if (callback) callback();
+    }
+
+    // ADÓKULCS SZERKESZTÉS FELOLDÁSA
+    function enableEdit(id) {
+        const input = document.getElementById(id);
+        input.readOnly = false;
+        input.classList.add('active');
+        input.focus();
+        // Amikor kilép a mezőből (blur), zárja vissza és számoljon újra
+        input.onblur = function() {
+            this.readOnly = true;
+            this.classList.remove('active');
+            recalculate();
+        };
     }
 
     function format(num) {
@@ -183,13 +194,13 @@
         document.getElementById('h-brut').innerText = format(b);
 
         document.getElementById('res-list-left').innerHTML = `
-            <div>SZJA (${szjaP*100}%): ${format(szjaVal)} Ft</div>
-            <div>TB (${tbP*100}%): ${format(tbVal)} Ft</div>
+            <div>SZJA (${(szjaP*100).toFixed(1)}%): ${format(szjaVal)} Ft</div>
+            <div>TB (${(tbP*100).toFixed(1)}%): ${format(tbVal)} Ft</div>
             <hr><strong>Össz: ${format(szjaVal + tbVal)} Ft</strong>
         `;
 
         document.getElementById('res-list-right').innerHTML = `
-            <div>Szocho (${szochoP*100}%): ${format(szochoVal)} Ft</div>
+            <div>Szocho (${(szochoP*100).toFixed(1)}%): ${format(szochoVal)} Ft</div>
             <div>TB kieg.: ${format(kiegVal)} Ft</div>
             <hr><strong>Össz: ${format(szochoVal + kiegVal)} Ft</strong>
         `;
@@ -201,7 +212,7 @@
         document.getElementById('results').classList.remove('hidden');
     }
 
-    // ARANY / ÁRFOLYAM (Ugyanaz)
+    // ARANY / ÁRFOLYAM
     async function loadRates() {
         const res = await fetch('https://open.er-api.com/v6/latest/HUF');
         const data = await res.json();
