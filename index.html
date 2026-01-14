@@ -18,12 +18,11 @@
         .container { max-width: 450px; margin: auto; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; border: 1px solid var(--border); }
         h1 { font-size: 28px; margin-bottom: 30px; letter-spacing: -0.5px; }
         
-        /* Gombok középre igazítva */
         .main-btn { 
             display: flex; align-items: center; justify-content: center;
             background: #262626; color: white; padding: 18px 25px; margin: 12px auto;
             border: 1px solid var(--border); border-radius: 16px; font-size: 17px; font-weight: 500;
-            transition: all 0.2s ease; width: 100%; box-sizing: border-box;
+            transition: all 0.2s ease; width: 100%; box-sizing: border-box; cursor: pointer;
         }
         .main-btn:active { transform: scale(0.98); background: #333; }
         .main-btn i { font-size: 20px; margin-right: 12px; font-style: normal; }
@@ -39,9 +38,8 @@
 
         .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; text-align: left; }
         .tax-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
-        .tax-row input { width: 60px; padding: 5px; font-size: 13px; text-align: center; border-radius: 6px; }
+        .tax-row input { width: 60px; padding: 5px; font-size: 13px; text-align: center; border-radius: 6px; border: 1px solid #444; }
         
-        /* Adó módosító gomb */
         .lock-btn { width: 24px; height: 24px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; }
         .lock-btn.unlocked { border-color: var(--accent); color: var(--accent); }
 
@@ -82,21 +80,9 @@
     <div class="input-group"><label>18 év alatti gyerekek</label><input type="number" id="gyerekek" value="0" min="0" oninput="recalculate()"></div>
     
     <div class="tax-settings">
-        <div class="tax-row">
-            <span>SZJA (%):</span>
-            <input type="number" id="tax-szja" value="15" step="0.5" readonly>
-            <button class="lock-btn" onclick="toggleLock('tax-szja', this)">□</button>
-        </div>
-        <div class="tax-row">
-            <span>TB (%):</span>
-            <input type="number" id="tax-tb" value="18.5" step="0.5" readonly>
-            <button class="lock-btn" onclick="toggleLock('tax-tb', this)">□</button>
-        </div>
-        <div class="tax-row">
-            <span>Szocho (%):</span>
-            <input type="number" id="tax-szocho" value="13" step="0.5" readonly>
-            <button class="lock-btn" onclick="toggleLock('tax-szocho', this)">□</button>
-        </div>
+        <div class="tax-row"><span>SZJA (%):</span><input type="number" id="tax-szja" value="15" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-szja', this)">□</button></div>
+        <div class="tax-row"><span>TB (%):</span><input type="number" id="tax-tb" value="18.5" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-tb', this)">□</button></div>
+        <div class="tax-row"><span>Szocho (%):</span><input type="number" id="tax-szocho" value="13" step="0.5" readonly><button class="lock-btn" onclick="toggleLock('tax-szocho', this)">□</button></div>
     </div>
 
     <button class="calc-btn" onclick="calculateFinal()">Kalkuláció futtatása</button>
@@ -106,15 +92,8 @@
             <div><small>Nettó</small><br><strong id="h-net">0</strong> Ft</div>
             <div><small>Bruttó</small><br><strong id="h-brut">0</strong> Ft</div>
         </div>
-        <div class="grid">
-            <div class="col"><h3>Levonások</h3><div id="res-list-left"></div></div>
-            <div class="col"><h3>Munkáltató</h3><div id="res-list-right"></div></div>
-        </div>
-        <div class="final-box">
-            Munkáltatói teher nettó felett:
-            <span class="green-val" id="res-netto-nelkul">0 Ft</span>
-            <small style="color: #8e8e93;">Összesen: <span id="res-teljes">0</span> Ft</small>
-        </div>
+        <div class="grid"><div class="col"><h3>Levonások</h3><div id="res-list-left"></div></div><div class="col"><h3>Munkáltató</h3><div id="res-list-right"></div></div></div>
+        <div class="final-box">Munkáltatói teher nettó felett:<span class="green-val" id="res-netto-nelkul">0 Ft</span><small style="color:#8e8e93;">Összesen: <span id="res-teljes">0</span> Ft</small></div>
     </div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
@@ -135,7 +114,6 @@
         input.readOnly = !input.readOnly;
         btn.classList.toggle('unlocked');
         btn.innerText = input.readOnly ? "□" : "✔";
-        if(!input.readOnly) input.focus();
     }
 
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
@@ -203,7 +181,8 @@
             const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
             const data = await res.json();
             const hufRate = data.rates.HUF;
-            const goldUSDPerOunce = data.rates.XAU ? (1 / data.rates.XAU) : 2750;
+            // Kényszerített uncia ár 2026-os piaci szinten (2850 USD), ha az API hibázik
+            const goldUSDPerOunce = (data.rates.XAU && (1/data.rates.XAU) > 2000) ? (1/data.rates.XAU) : 2850;
             const g = (goldUSDPerOunce / 31.1035) * hufRate;
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div>
