@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Pénzügyi Kalkulátor</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 10px; background: #f4f4f4; }
+        .section { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        input { width: 90%; padding: 5px; margin-top: 5px; }
+        button { cursor: pointer; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; margin-top: 10px; }
+        .res-col { padding: 10px; border: 1px solid #ddd; }
+        .green { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="section">
+    <button onclick="getRates()">1. Árfolyam Lekérése</button>
+    <div id="rates-result" style="margin-top:10px;"></div>
+</div>
+
+<div class="section">
+    <button onclick="getGold()">2. Arany Ár (HUF/gramm)</button>
+    <div id="gold-result" style="margin-top:10px;"></div>
+</div>
+
+<div class="section">
+    <h3>3. Munkabér Kalkulátor</h3>
+    <label>Bruttó: <input type="number" id="brutto" oninput="calcFromBrutto()"></label><br>
+    <label>Nettó: <input type="number" id="netto" oninput="calcFromNetto()"></label><br>
+    <label>Gyerekek száma: <input type="number" id="gyerek" value="0"></label>
+    
+    <div style="margin-top:10px; font-size: 0.8em;">
+        SZJA: <span id="szja-val">15</span>% <button onclick="changeTax('szja')">VÁLTOZÁS</button> | 
+        TB: <span id="tb-val">18.5</span>% <button onclick="changeTax('tb')">VÁLTOZÁS</button> | 
+        SZOCHO: <span id="szocho-val">13</span>% <button onclick="changeTax('szocho')">VÁLTOZÁS</button>
+    </div>
+
+    <button onclick="calculateWage()" style="width:100%; background: #28a745;">MEHET</button>
+
+    <div id="wage-result" class="grid" style="margin-top:15px; display:none;">
+        <div class="res-col">
+            <strong>Levonások</strong><br>
+            <div id="deductions-list"></div>
+            <hr><strong>Összesen: <span id="sum-ded"></span></strong>
+        </div>
+        <div class="res-col">
+            <strong>Munkaadó</strong><br>
+            SZOCHO: <span id="m-szocho"></span> Ft<br>
+            TB kieg: <span id="m-tb-extra">0</span> Ft<br>
+            <p class="green">Kiadás - Nettó: <span id="m-kiadas-netto"></span> Ft</p>
+            <small>(Összes kiadás: <span id="m-total"></span> Ft)</small>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- ÁRFOLYAM ---
+async function getRates() {
+    const res = await fetch('https://open.er-api.com/v6/latest/EUR');
+    const data = await res.json();
+    const huf = data.rates.HUF;
+    const usdInEur = data.rates.USD;
+    const gbpInEur = data.rates.GBP;
+    
+    document.getElementById('rates-result').innerHTML = `
+        1 Euro = ${huf.toFixed(2)} Ft<br>
+        1 USD = ${(huf / usdInEur).toFixed(2)} Ft<br>
+        1 GBP = ${(huf / gbpInEur).toFixed(2)} Ft
+    `;
+}
+
+// --- ARANY (Fix kamattal/becsléssel, mivel nincs ingyenes napi Gold API kulcs nélkül) ---
+async function getGold() {
+    // Demo célból világpiaci árat szimulál (HUF/g)
+    const goldPriceUsdOz = 2050; // Kb. ár/uncia
+    const grammPerOz = 31.1;
+    const usdHuf = 350; 
+    const pricePerGram = (goldPriceUsdOz / grammPerOz) * usdHuf;
+    
+    let html = "";
+    [24, 22, 18, 14, 9].forEach(k => {
+        html += `${k} karát: ${Math.round(pricePerGram * (k/24))} Ft/g<br>`;
+    });
+    document.getElementById('gold-result').innerHTML = html;
+}
+
+// --- BÉR ---
+let taxes = { szja: 15, tb: 18.5, szocho: 13 };
+
+function changeTax(id) {
+    let newVal = prompt("Új érték (%):", taxes[id]);
+    if(newVal) {
+        taxes[id] = parseFloat(newVal);
+        document.getElementById(id + '-val').innerText = newVal;
+    }
+}
+
+function calcFromBrutto() {
+    let b = document.getElementById('brutto').value;
+    document.getElementById('netto').value = Math.round(b * (1 - (taxes.szja + taxes.tb)/100));
+}
+
+function calcFromNetto() {
+    let n = document.getElementById('netto').value;
+    document.getElementById('brutto').value = Math.round(n / (1 - (taxes.szja + taxes.tb)/100));
+}
+
+function calculateWage() {
+    const brutto = parseFloat(document.getElementById('brutto').value) || 0;
+    const gyerek = parseInt(document.getElementById('gyerek').value) || 0;
+    
+    // Kedvezmény (példa: 10e Ft / gyerek)
+    const kedvezmeny = gyerek * 10000;
+    const levonSZJA = Math.max(0, (brutto * (taxes.szja / 100)) - kedvezmeny);
+    const levonTB = brutto * (taxes.tb / 100);
+    const netto = brutto - levonSZJA - levonTB;
+    
+    const szochoFt = brutto * (taxes.szocho / 100);
+    const tbKieg = netto < 100000 ? 5000 : 0; // Példa logika a kiegészítésre
+
+    document.getElementById('deductions-list').innerHTML = `SZJA: ${Math.round(levonSZJA)} Ft<br>TB: ${Math.round(levonTB)} Ft`;
+    document.getElementById('sum-ded').innerText = Math.round(levonSZJA + levonTB);
+    
+    document.getElementById('m-szocho').innerText = Math.round(szochoFt);
+    document.getElementById('m-tb-extra').innerText = tbKieg;
+    document.getElementById('m-kiadas-netto').innerText = Math.round(brutto + szochoFt + tbKieg - netto);
+    document.getElementById('m-total').innerText = Math.round(brutto + szochoFt + tbKieg);
+    
+    document.getElementById('wage-result').style.display = 'grid';
+}
+</script>
+</body>
+</html>
