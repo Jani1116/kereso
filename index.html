@@ -3,20 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pénzügyi App</title>
+    <title>Pénzügyi App 2026</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; text-align: center; padding: 20px; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        .main-btn { background: #007bff; color: white; }
-        .back-btn { background: #6c757d; color: white; }
-        .calc-btn { background: #28a745; color: white; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
+        .main-btn { background: #3498db; color: white; }
+        .back-btn { background: #95a5a6; color: white; }
+        .calc-btn { background: #27ae60; color: white; margin-top: 20px; }
         .hidden { display: none; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; text-align: right; font-size: 18px; }
-        .summary-header { background: #e9ecef; padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: bold; font-size: 18px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; font-size: 14px; margin-top: 20px; border-top: 2px solid #ddd; padding-top: 15px; }
-        .total-box { color: #28a745; font-weight: bold; margin-top: 20px; padding: 10px; border: 1px solid #28a745; border-radius: 8px; }
-        .label { text-align: left; display: block; font-weight: bold; margin-top: 5px; }
+        .input-group { text-align: left; margin-bottom: 12px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #7f8c8d; }
+        input { width: 100%; padding: 10px; border: 2px solid #ecf0f1; border-radius: 8px; box-sizing: border-box; text-align: right; font-size: 16px; font-weight: bold; }
+        
+        /* Adókulcs szerkesztő stílusa */
+        .tax-settings { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left; border: 1px dashed #bdc3c7; }
+        .tax-settings h4 { margin: 0 0 10px 0; font-size: 14px; color: #2c3e50; }
+        .tax-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .tax-row span { font-size: 13px; flex: 1; }
+        .tax-row input { width: 60px; padding: 5px; font-size: 13px; margin-right: 5px; text-align: center; }
+        .change-btn { width: auto; padding: 5px 10px; font-size: 11px; margin: 0; background: #e67e22; color: white; border-radius: 5px; }
+
+        .summary-header { background: #34495e; color: white; padding: 15px; border-radius: 12px; margin: 20px 0; display: flex; justify-content: space-around; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; border-top: 2px solid #ecf0f1; padding-top: 20px; }
+        .final-box { background: #e8f6ef; border: 2px solid #27ae60; padding: 15px; border-radius: 12px; margin-top: 20px; text-align: left; }
+        .green-val { color: #27ae60; font-size: 22px; font-weight: 900; display: block; }
     </style>
 </head>
 <body>
@@ -28,61 +39,84 @@
     <button class="main-btn" onclick="showScreen('ber-screen')">Munkabér</button>
 </div>
 
-<div class="container hidden" id="arfolyam-screen">
-    <h2>Valuta Árfolyamok (HUF)</h2>
-    <div id="rates-result" style="font-size: 20px; margin: 20px 0;">Betöltés...</div>
-    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
-</div>
-
-<div class="container hidden" id="arany-screen">
-    <h2>Arany Árak / gramm</h2>
-    <div id="gold-result" style="font-size: 20px; margin: 20px 0;">Betöltés...</div>
-    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
-</div>
-
 <div class="container hidden" id="ber-screen">
     <h2>Bérkalkulátor</h2>
     
-    <span class="label">Nettó bér:</span>
-    <input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft">
+    <div class="input-group">
+        <label>Nettó bér:</label>
+        <input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft">
+    </div>
     
-    <span class="label">Bruttó bér:</span>
-    <input type="text" id="brutto-input" oninput="handleInput(this, 'brutto')" placeholder="0 Ft">
+    <div class="input-group">
+        <label>Bruttó bér:</label>
+        <input type="text" id="brutto-input" oninput="handleInput(this, 'brutto')" placeholder="0 Ft">
+    </div>
     
-    <span class="label">Gyermekek száma:</span>
-    <input type="number" id="gyerekek" value="0" min="0" oninput="recalculate()">
+    <div class="input-group">
+        <label>Gyermekek száma:</label>
+        <input type="number" id="gyerekek" value="0" min="0" oninput="recalculate()">
+    </div>
+
+    <div class="tax-settings">
+        <h4>Adókulcsok beállítása</h4>
+        <div class="tax-row">
+            <span>SZJA (%):</span>
+            <input type="number" id="tax-szja" value="15" step="0.5">
+            <button class="change-btn" onclick="recalculate()">Változás</button>
+        </div>
+        <div class="tax-row">
+            <span>TB (%):</span>
+            <input type="number" id="tax-tb" value="18.5" step="0.5">
+            <button class="change-btn" onclick="recalculate()">Változás</button>
+        </div>
+        <div class="tax-row">
+            <span>Szocho (%):</span>
+            <input type="number" id="tax-szocho" value="13" step="0.5">
+            <button class="change-btn" onclick="recalculate()">Változás</button>
+        </div>
+    </div>
     
     <button class="calc-btn" onclick="calculateFinal()">Mehet</button>
 
     <div id="results" class="hidden">
         <div class="summary-header">
-            Nettó: <span id="header-netto">0</span> Ft | Bruttó: <span id="header-brutto">0</span> Ft
+            <div>Nettó: <span id="h-net">0</span> Ft</div>
+            <div>Bruttó: <span id="h-brut">0</span> Ft</div>
         </div>
 
         <div class="grid">
-            <div>
-                <strong>Levonások:</strong><br><br>
-                SZJA (15%): <span id="szja">0</span> Ft<br>
-                TB járulék (18.5%): <span id="tb">0</span> Ft<br>
-                <hr>
-                Összesen: <span id="levonas-total">0</span> Ft
+            <div class="col">
+                <h3>Levonások</h3>
+                <div id="res-list-left"></div>
             </div>
-            <div>
-                <strong>Munkáltató kiadása:</strong><br><br>
-                Szochó (13%): <span id="szocho">0</span> Ft<br>
-                TB kiegészítés: <span id="tb-min">0</span> Ft<br>
-                <hr>
-                Összesen: <span id="munkaltato-total">0</span> Ft
+            <div class="col">
+                <h3>Munkáltató</h3>
+                <div id="res-list-right"></div>
             </div>
         </div>
         
-        <div class="total-box">
-            Munkáltató kiadása nettó nélkül: <span id="kiadas-netto-nelkul">0</span> Ft<br>
-            <small>(Teljes költség: <span id="teljes-koltseg">0</span> Ft)</small>
+        <div class="final-box">
+            Munkáltató kiadása nettó nélkül:
+            <span class="green-val" id="res-netto-nelkul">0 Ft</span>
+            <div style="margin-top:10px; font-size: 12px; color: #666;">
+                Összes kiadás: <span id="res-teljes">0</span> Ft
+            </div>
         </div>
     </div>
     
-    <button class="back-btn" style="margin-top: 20px;" onclick="showScreen('main-menu')">Vissza</button>
+    <button class="back-btn" style="margin-top: 25px;" onclick="showScreen('main-menu')">Vissza</button>
+</div>
+
+<div class="container hidden" id="arfolyam-screen">
+    <h2>Valuta Árfolyamok</h2>
+    <div id="rates-result" style="font-size: 22px; margin: 30px 0;">Betöltés...</div>
+    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
+</div>
+
+<div class="container hidden" id="arany-screen">
+    <h2>Arany Árak (gramm)</h2>
+    <div id="gold-result" style="font-size: 22px; margin: 30px 0;">Betöltés...</div>
+    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
 
 <script>
@@ -95,104 +129,90 @@
         if (callback) callback();
     }
 
-    // Formázás: 1 234 567
-    function formatNumber(val) {
-        return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    function format(num) {
+        return Math.round(num).toLocaleString('hu-HU');
     }
 
-    // Input kezelő (csak számot enged, formáz és számol)
     function handleInput(el, type) {
-        let val = el.value.replace(/\D/g, ""); // Csak számok maradnak
-        if (val === "") val = 0;
+        let val = el.value.replace(/\D/g, ""); 
+        let num = parseInt(val) || 0;
         
-        let num = parseInt(val);
-        el.value = formatNumber(num) + (num > 0 ? " Ft" : "");
+        const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100;
+        const tbP = parseFloat(document.getElementById('tax-tb').value) / 100;
 
         if (type === 'brutto') {
             rawBrutto = num;
-            updateNettoFromBrutto();
+            const kedv = getKedvezmeny();
+            rawNetto = Math.round(rawBrutto - (Math.max(0, (rawBrutto * szjaP) - kedv)) - (rawBrutto * tbP));
         } else {
             rawNetto = num;
-            updateBruttoFromNetto();
+            const kedv = getKedvezmeny();
+            rawBrutto = Math.round((rawNetto - kedv) / (1 - szjaP - tbP));
         }
+        
+        document.getElementById('brutto-input').value = rawBrutto > 0 ? format(rawBrutto) + " Ft" : "";
+        document.getElementById('netto-input').value = rawNetto > 0 ? format(rawNetto) + " Ft" : "";
     }
 
-    function updateNettoFromBrutto() {
-        let kedvezmeny = getCsaladiKedvezmeny();
-        let szja = Math.max(0, (rawBrutto * 0.15) - kedvezmeny);
-        let tb = rawBrutto * 0.185;
-        rawNetto = Math.round(rawBrutto - szja - tb);
-        document.getElementById('netto-input').value = formatNumber(rawNetto) + " Ft";
-    }
-
-    function updateBruttoFromNetto() {
-        let kedvezmeny = getCsaladiKedvezmeny();
-        rawBrutto = Math.round((rawNetto - kedvezmeny) / 0.665);
-        document.getElementById('brutto-input').value = formatNumber(rawBrutto) + " Ft";
-    }
-
-    function getCsaladiKedvezmeny() {
-        let gyerek = parseInt(document.getElementById('gyerekek').value) || 0;
-        if (gyerek === 1) return 10000;
-        if (gyerek === 2) return 40000;
-        if (gyerek >= 3) return gyerek * 33000;
-        return 0;
+    function getKedvezmeny() {
+        let gy = parseInt(document.getElementById('gyerekek').value) || 0;
+        if (gy === 1) return 10000;
+        if (gy === 2) return 40000;
+        return gy >= 3 ? gy * 33000 : 0;
     }
 
     function recalculate() {
-        updateNettoFromBrutto();
+        handleInput(document.getElementById('brutto-input'), 'brutto');
     }
 
     function calculateFinal() {
         const b = rawBrutto;
         const n = rawNetto;
+        const jarulekMinimum = 80000;
         
-        document.getElementById('header-netto').innerText = formatNumber(n);
-        document.getElementById('header-brutto').innerText = formatNumber(b);
+        const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100;
+        const tbP = parseFloat(document.getElementById('tax-tb').value) / 100;
+        const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
 
-        let szja = b * 0.15;
-        let tb = b * 0.185;
-        let szocho = b * 0.13;
-        let tbKieg = b > 0 && b < 70000 ? (70000 - b) * 0.185 : 0;
+        let szjaVal = Math.max(0, (b * szjaP) - getKedvezmeny());
+        let tbVal = b * tbP;
+        let szochoVal = b * szochoP;
+        let kiegVal = (b > 0 && b < jarulekMinimum) ? (jarulekMinimum - b) * tbP : 0;
 
-        document.getElementById('szja').innerText = formatNumber(Math.round(szja));
-        document.getElementById('tb').innerText = formatNumber(Math.round(tb));
-        document.getElementById('levonas-total').innerText = formatNumber(Math.round(szja + tb));
+        document.getElementById('h-net').innerText = format(n);
+        document.getElementById('h-brut').innerText = format(b);
+
+        document.getElementById('res-list-left').innerHTML = `
+            <div>SZJA (${szjaP*100}%): ${format(szjaVal)} Ft</div>
+            <div>TB (${tbP*100}%): ${format(tbVal)} Ft</div>
+            <hr><strong>Össz: ${format(szjaVal + tbVal)} Ft</strong>
+        `;
+
+        document.getElementById('res-list-right').innerHTML = `
+            <div>Szocho (${szochoP*100}%): ${format(szochoVal)} Ft</div>
+            <div>TB kieg.: ${format(kiegVal)} Ft</div>
+            <hr><strong>Össz: ${format(szochoVal + kiegVal)} Ft</strong>
+        `;
         
-        document.getElementById('szocho').innerText = formatNumber(Math.round(szocho));
-        document.getElementById('tb-min').innerText = formatNumber(Math.round(tbKieg));
-        document.getElementById('munkaltato-total').innerText = formatNumber(Math.round(szocho + tbKieg));
-
-        let nettoNelkul = szja + tb + szocho + tbKieg;
-        document.getElementById('kiadas-netto-nelkul').innerText = formatNumber(Math.round(nettoNelkul)) + " Ft";
-        document.getElementById('teljes-koltseg').innerText = formatNumber(Math.round(b + szocho + tbKieg)) + " Ft";
+        const nettoNelkul = szjaVal + tbVal + szochoVal + kiegVal;
+        document.getElementById('res-netto-nelkul').innerText = format(nettoNelkul) + " Ft";
+        document.getElementById('res-teljes').innerText = format(b + szochoVal + kiegVal);
 
         document.getElementById('results').classList.remove('hidden');
     }
 
-    // ARANY ÉS ÁRFOLYAM (Ugyanaz mint előbb)
+    // ARANY / ÁRFOLYAM (Ugyanaz)
     async function loadRates() {
         const res = await fetch('https://open.er-api.com/v6/latest/HUF');
         const data = await res.json();
-        const r = data.rates;
-        document.getElementById('rates-result').innerHTML = `
-            <p>1 EUR = <b>${(1/r.EUR).toFixed(2)}</b> Ft</p>
-            <p>1 USD = <b>${(1/r.USD).toFixed(2)}</b> Ft</p>
-            <p>1 GBP = <b>${(1/r.GBP).toFixed(2)}</b> Ft</p>`;
+        document.getElementById('rates-result').innerHTML = `<p>1 EUR = <b>${(1/data.rates.EUR).toFixed(2)}</b> Ft</p><p>1 USD = <b>${(1/data.rates.USD).toFixed(2)}</b> Ft</p>`;
     }
-
     async function loadGold() {
         const res = await fetch('https://open.er-api.com/v6/latest/USD');
         const data = await res.json();
-        const huf = data.rates.HUF;
-        const goldOunceUsd = 4615; // 2026-os árfolyam
-        const gPrice = (goldOunceUsd / 31.1035) * huf;
-        document.getElementById('gold-result').innerHTML = `
-            <p>24 karát: <b>${formatNumber(Math.round(gPrice))}</b> Ft/g</p>
-            <p>18 karát: <b>${formatNumber(Math.round(gPrice * 0.75))}</b> Ft/g</p>
-            <p>14 karát: <b>${formatNumber(Math.round(gPrice * 0.585))}</b> Ft/g</p>`;
+        const g = (4615 / 31.1035) * data.rates.HUF;
+        document.getElementById('gold-result').innerHTML = `<p>24k: <b>${format(g)}</b> Ft/g</p><p>14k: <b>${format(g*0.585)}</b> Ft/g</p>`;
     }
 </script>
-
 </body>
 </html>
