@@ -22,7 +22,6 @@
         label { display: block; font-weight: 500; margin-bottom: 8px; font-size: 13px; color: #8e8e93; text-transform: uppercase; }
         input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; box-sizing: border-box; text-align: right; font-size: 18px; color: white; }
         
-        /* ADÓKULCSOK EGY SORBAN */
         .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; }
         .tax-row-container { display: flex; justify-content: space-between; gap: 10px; }
         .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
@@ -49,16 +48,19 @@
     <button class="main-btn" onclick="showScreen('arfolyam-screen', loadRates)"><i>🏦</i> Valuta Árfolyamok</button>
     <button class="main-btn" onclick="showScreen('ber-screen')"><i>💳</i> Bérkalkulátor</button>
 </div>
+
 <div class="container hidden" id="arany-screen">
     <h2>Arany (Ft/g)</h2>
     <div id="gold-result"></div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta</h2>
     <div id="rates-result"></div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <div class="container hidden" id="ber-screen">
     <h2>Bérkalkulátor</h2>
     <div class="input-group"><label>Nettó bér</label><input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
@@ -99,47 +101,98 @@
     </div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <script>
     let rawBrutto = 0; let rawNetto = 0;
     const MINIMÁLBÉR_2026 = 300000; const TB_ALAP_MINIMUM = MINIMÁLBÉR_2026 * 0.3;
-    function showScreen(id, callback) { document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); if (callback) callback(); }
-    function toggleLock(inputId, btn) { const input = document.getElementById(inputId); input.readOnly = !input.readOnly; btn.classList.toggle('unlocked'); btn.innerText = input.readOnly ? "□" : "✔"; }
+
+    function showScreen(id, callback) { 
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
+        document.getElementById(id).classList.remove('hidden'); 
+        if (callback) callback(); 
+    }
+
+    function toggleLock(inputId, btn) { 
+        const input = document.getElementById(inputId); 
+        input.readOnly = !input.readOnly; 
+        btn.classList.toggle('unlocked'); 
+        btn.innerText = input.readOnly ? "□" : "✔"; 
+    }
+
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
+
     function handleInput(el, type) {
         let val = el.value.replace(/\D/g, ""); let num = parseInt(val) || 0;
         const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100;
         const tbP = parseFloat(document.getElementById('tax-tb').value) / 100;
-        if (type === 'brutto') { rawBrutto = num; let szja = Math.max(0, (rawBrutto * szjaP) - getKedvezmeny()); rawNetto = rawBrutto - szja - (rawBrutto * tbP); }
-        else { rawNetto = num; rawBrutto = (rawNetto - getKedvezmeny()) / (1 - szjaP - tbP); }
+        if (type === 'brutto') { 
+            rawBrutto = num; 
+            let szja = Math.max(0, (rawBrutto * szjaP) - getKedvezmeny()); 
+            rawNetto = rawBrutto - szja - (rawBrutto * tbP); 
+        } else { 
+            rawNetto = num; 
+            rawBrutto = (rawNetto - getKedvezmeny()) / (1 - szjaP - tbP); 
+        }
         document.getElementById('brutto-input').value = rawBrutto > 0 ? format(rawBrutto) + " Ft" : "";
         document.getElementById('netto-input').value = rawNetto > 0 ? format(rawNetto) + " Ft" : "";
     }
-    function getKedvezmeny() { let gy = parseInt(document.getElementById('gyerekek').value) || 0; if (gy === 1) return 10000; if (gy === 2) return 40000; return gy >= 3 ? gy * 33000 : 0; }
+
+    function getKedvezmeny() { 
+        let gy = parseInt(document.getElementById('gyerekek').value) || 0; 
+        if (gy === 1) return 10000; 
+        if (gy === 2) return 40000; 
+        return gy >= 3 ? gy * 33000 : 0; 
+    }
+
     function recalculate() { handleInput(document.getElementById('brutto-input'), 'brutto'); }
+
     function calculateFinal() {
-        const b = Math.max(0, rawBrutto); const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100; const tbP = parseFloat(document.getElementById('tax-tb').value) / 100; const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
-        const szja = Math.max(0, (b * szjaP) - getKedvezmeny()); const tb = b * tbP; const szocho = b * szochoP;
+        const b = Math.max(0, rawBrutto); 
+        const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100; 
+        const tbP = parseFloat(document.getElementById('tax-tb').value) / 100; 
+        const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
+        const szja = Math.max(0, (b * szjaP) - getKedvezmeny()); 
+        const tb = b * tbP; 
+        const szocho = b * szochoP;
         let tbKieg = (b > 0 && b < TB_ALAP_MINIMUM) ? (TB_ALAP_MINIMUM - b) * tbP : 0;
-        document.getElementById('h-net').innerText = format(rawNetto); document.getElementById('h-brut').innerText = format(b);
+        document.getElementById('h-net').innerText = format(rawNetto); 
+        document.getElementById('h-brut').innerText = format(b);
         document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft`;
         document.getElementById('res-list-right').innerHTML = `Szocho: ${format(szocho)} Ft<br>${tbKieg > 0 ? '<b>TB kieg: ' + format(tbKieg) + ' Ft</b>' : ''}`;
         document.getElementById('res-netto-nelkul').innerText = format(szja + tb + szocho + tbKieg) + " Ft";
         document.getElementById('res-teljes').innerText = format(b + szocho + tbKieg);
         document.getElementById('results').classList.remove('hidden');
     }
+
     async function loadRates() {
         const resDiv = document.getElementById('rates-result'); resDiv.innerHTML = "Lekérés...";
-        try { const res = await fetch('https://open.er-api.com/v6/latest/HUF'); const data = await res.json(); const r = data.rates;
+        try { 
+            const res = await fetch('https://open.er-api.com/v6/latest/HUF'); 
+            const data = await res.json(); 
+            const r = data.rates;
             resDiv.innerHTML = `<div class="rate-box"><span><i>🇪🇺</i> Euro (EUR)</span> <b>${(1/r.EUR).toFixed(2)} Ft</b></div><div class="rate-box"><span><i>🇺🇸</i> Dollár (USD)</span> <b>${(1/r.USD).toFixed(2)} Ft</b></div><div class="rate-box"><span><i>🇬🇧</i> Font (GBP)</span> <b>${(1/r.GBP).toFixed(2)} Ft</b></div>`;
         } catch(e) { resDiv.innerHTML = "Hiba! Nincs internet."; }
     }
+
     async function loadGold() {
-        const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
+        const resDiv = document.getElementById('gold-result'); 
+        resDiv.innerHTML = "Lekérés...";
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD'); const data = await res.json();
+            const res = await fetch('https://open.er-api.com/v6/latest/USD'); 
+            const data = await res.json();
             const hufRate = data.rates.HUF;
-            const g = hufRate * 88.5;
-            resDiv.innerHTML = `<div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div><div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(g * 0.916)} Ft</b></div><div class="rate-box"><span><i>✨</i> 18k (750)</span> <b>${format(g * 0.75)} Ft</b></div><div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(g * 0.585)} Ft</b></div><div class="rate-box"><span><i>🛠️</i> 10k (417)</span> <b>${format(g * 0.417)} Ft</b></div><div class="rate-box"><span><i>🥈</i> 9k (375)</span> <b>${format(g * 0.375)} Ft</b></div>`;
+            const xauRate = data.rates.XAU; // 1 USD = ennyi uncia arany
+            
+            // Kiszámítás: (1/uncia ár USD-ben) / 31.1035 gramm * HUF árfolyam
+            const pricePerGramHuf = ((1 / xauRate) / 31.1035) * hufRate;
+
+            resDiv.innerHTML = `
+                <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(pricePerGramHuf)} Ft</b></div>
+                <div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(pricePerGramHuf * 0.916)} Ft</b></div>
+                <div class="rate-box"><span><i>✨</i> 18k (750)</span> <b>${format(pricePerGramHuf * 0.75)} Ft</b></div>
+                <div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(pricePerGramHuf * 0.585)} Ft</b></div>
+                <div class="rate-box"><span><i>🛠️</i> 10k (417)</span> <b>${format(pricePerGramHuf * 0.417)} Ft</b></div>
+                <div class="rate-box"><span><i>🥈</i> 9k (375)</span> <b>${format(pricePerGramHuf * 0.375)} Ft</b></div>`;
         } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
     }
 </script>
