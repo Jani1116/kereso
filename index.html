@@ -129,7 +129,7 @@
         const szja = Math.max(0, (b * szjaP) - getKedvezmeny()); const tb = b * tbP; const szocho = b * szochoP;
         let tbKieg = (b > 0 && b < TB_ALAP_MINIMUM) ? (TB_ALAP_MINIMUM - b) * tbP : 0;
         document.getElementById('h-net').innerText = format(rawNetto); document.getElementById('h-brut').innerText = format(b);
-        document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft`;
+        document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft<br><small style="color:#8e8e93;">(${format(szja + tb)} Ft)</small>`;
         document.getElementById('res-list-right').innerHTML = `Szocho: ${format(szocho)} Ft<br>${tbKieg > 0 ? '<b>TB kieg: ' + format(tbKieg) + ' Ft</b>' : ''}`;
         document.getElementById('res-netto-nelkul').innerText = format(szja + tb + szocho + tbKieg) + " Ft";
         document.getElementById('res-teljes').innerText = format(b + szocho + tbKieg);
@@ -152,17 +152,12 @@
     async function loadGold() {
         const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
         try {
-            // Stabilabb API végpont az aranyhoz (HUF bázison)
             const res = await fetch('https://open.er-api.com/v6/latest/HUF');
             const data = await res.json();
             const hufPerUsd = 1 / data.rates.USD;
-            
-            // Másodlagos lekérés az aktuális aranyárhoz (USD/uncia)
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
             const goldData = await goldRes.json();
-            
             const g = (goldData.price * hufPerUsd) / 31.1035;
-            
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div>
                 <div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(g * 0.916)} Ft</b></div>
