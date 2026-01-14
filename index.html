@@ -18,7 +18,7 @@
         .container { max-width: 450px; margin: auto; background: var(--card); padding: 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center; border: 1px solid var(--border); }
         h1 { font-size: 28px; margin-bottom: 30px; letter-spacing: -0.5px; }
         
-        /* Gombok középre igazítva a kezdőképernyőn */
+        /* Gombok középre igazítva */
         .main-btn { 
             display: flex; align-items: center; justify-content: center;
             background: #262626; color: white; padding: 18px 25px; margin: 12px auto;
@@ -26,31 +26,31 @@
             transition: all 0.2s ease; width: 100%; box-sizing: border-box;
         }
         .main-btn:active { transform: scale(0.98); background: #333; }
-        .main-btn i { font-size: 20px; margin-right: 12px; }
+        .main-btn i { font-size: 20px; margin-right: 12px; font-style: normal; }
         
-        .back-btn { background: transparent; color: #8e8e93; margin-top: 20px; border: 1px solid #333; width: 100%; padding: 12px; border-radius: 12px; }
-        .calc-btn { background: var(--accent); color: white; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,122,255,0.3); border: none; width: 100%; padding: 15px; border-radius: 16px; font-weight: bold; }
+        .back-btn { background: transparent; color: #8e8e93; margin-top: 20px; border: 1px solid #333; width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; }
+        .calc-btn { background: var(--accent); color: white; margin-top: 20px; border: none; width: 100%; padding: 15px; border-radius: 16px; font-weight: bold; cursor: pointer; }
 
         .hidden { display: none; }
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; font-size: 13px; color: #8e8e93; text-transform: uppercase; }
         input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; box-sizing: border-box; text-align: right; font-size: 18px; color: white; }
-        input:read-only { color: #666; background: #1a1a1a; }
+        input:read-only { color: #888; background: #1a1a1a; }
 
         .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; text-align: left; }
         .tax-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 13px; }
-        .tax-row input { width: 60px; padding: 5px; font-size: 13px; text-align: center; }
+        .tax-row input { width: 60px; padding: 5px; font-size: 13px; text-align: center; border-radius: 6px; }
         
-        /* Kis üres négyzet gomb */
-        .lock-btn { width: 24px; height: 24px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
+        /* Adó módosító gomb */
+        .lock-btn { width: 24px; height: 24px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; }
         .lock-btn.unlocked { border-color: var(--accent); color: var(--accent); }
 
         .summary-header { background: #2c2c2e; padding: 20px; border-radius: 16px; margin: 20px 0; display: flex; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 20px; }
         .final-box { background: rgba(48, 209, 88, 0.1); border: 1px solid var(--success); padding: 20px; border-radius: 16px; margin-top: 20px; text-align: left; }
         .green-val { color: var(--success); font-size: 24px; font-weight: 700; display: block; }
+        
         .rate-box { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .rate-box span { display: flex; align-items: center; }
         .rate-box i { margin-right: 10px; font-style: normal; }
     </style>
 </head>
@@ -168,17 +168,14 @@
         const szjaP = parseFloat(document.getElementById('tax-szja').value) / 100;
         const tbP = parseFloat(document.getElementById('tax-tb').value) / 100;
         const szochoP = parseFloat(document.getElementById('tax-szocho').value) / 100;
-
         const szja = Math.max(0, (b * szjaP) - getKedvezmeny());
         const tb = b * tbP;
         const szocho = b * szochoP;
         let tbKieg = (b > 0 && b < TB_ALAP_MINIMUM) ? (TB_ALAP_MINIMUM - b) * tbP : 0;
-
         document.getElementById('h-net').innerText = format(rawNetto);
         document.getElementById('h-brut').innerText = format(b);
         document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft`;
         document.getElementById('res-list-right').innerHTML = `Szocho: ${format(szocho)} Ft<br>${tbKieg > 0 ? '<b>TB kieg: ' + format(tbKieg) + ' Ft</b>' : ''}`;
-        
         document.getElementById('res-netto-nelkul').innerText = format(szja + tb + szocho + tbKieg) + " Ft";
         document.getElementById('res-teljes').innerText = format(b + szocho + tbKieg);
         document.getElementById('results').classList.remove('hidden');
@@ -186,7 +183,7 @@
 
     async function loadRates() {
         const resDiv = document.getElementById('rates-result');
-        resDiv.innerHTML = "Betöltés...";
+        resDiv.innerHTML = "Lekérés...";
         try {
             const res = await fetch('https://open.er-api.com/v6/latest/HUF');
             const data = await res.json();
@@ -196,17 +193,18 @@
                 <div class="rate-box"><span><i>🇺🇸</i> Amerikai Dollár (USD)</span> <b>${(1/r.USD).toFixed(2)} Ft</b></div>
                 <div class="rate-box"><span><i>🇬🇧</i> Angol Font (GBP)</span> <b>${(1/r.GBP).toFixed(2)} Ft</b></div>
             `;
-        } catch(e) { resDiv.innerHTML = "Nincs internetkapcsolat."; }
+        } catch(e) { resDiv.innerHTML = "Hiba! Nincs internet."; }
     }
 
     async function loadGold() {
         const resDiv = document.getElementById('gold-result');
-        resDiv.innerHTML = "Árak frissítése...";
+        resDiv.innerHTML = "Élő adatok...";
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD');
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
             const data = await res.json();
-            const goldUSD = data.rates.XAU ? (1 / data.rates.XAU) : 2650;
-            const g = (goldUSD / 31.1035) * data.rates.HUF;
+            const hufRate = data.rates.HUF;
+            const goldUSDPerOunce = data.rates.XAU ? (1 / data.rates.XAU) : 2750;
+            const g = (goldUSDPerOunce / 31.1035) * hufRate;
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div>
                 <div class="rate-box"><span><i>🥇</i> 22k (916)</span> <b>${format(g * 0.916)} Ft</b></div>
