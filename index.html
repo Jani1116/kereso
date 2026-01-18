@@ -17,19 +17,16 @@
         .back-btn { background: transparent; color: #8e8e93; margin-top: 20px; border: 1px solid #333; width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; }
         .hidden { display: none; }
         
-        /* Valuta Sor */
         .rate-row { background: #252525; padding: 15px; border-radius: 16px; margin-bottom: 12px; text-align: left; border: 1px solid #333; }
         .rate-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .rate-val { font-weight: 700; color: var(--accent); font-size: 18px; }
         .calc-area { display: flex; align-items: center; gap: 8px; border-top: 1px solid #333; padding-top: 10px; }
         .calc-input { width: 80px; background: #1a1a1a; border: 1px solid #444; color: white; padding: 8px; border-radius: 8px; text-align: center; }
         .calc-res { font-weight: 700; color: var(--success); flex-grow: 1; text-align: right; }
-        .timestamp { font-size: 11px; color: #8e8e93; margin-bottom: 15px; display: block; line-height: 1.4; }
+        .timestamp { font-size: 11px; color: #8e8e93; margin-bottom: 15px; display: block; }
 
-        /* Arany Lista */
         .rate-box { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         
-        /* Bérkalkulátor (Eredeti stílus) */
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-size: 12px; color: #8e8e93; margin-bottom: 5px; text-transform: uppercase; }
         .full-input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; font-size: 18px; color: white; text-align: right; box-sizing: border-box; }
@@ -39,8 +36,6 @@
         .tax-item span { font-size: 10px; color: #8e8e93; text-transform: uppercase; margin-bottom: 5px; }
         .tax-input-wrap { display: flex; align-items: center; gap: 4px; }
         .tax-item input { width: 45px; padding: 6px 2px; font-size: 12px; text-align: center; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; color: white; }
-        .tax-item input:read-only { color: #888; border-color: #333; }
-        .lock-btn { width: 22px; height: 22px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
         .summary-header { background: #2c2c2e; padding: 20px; border-radius: 16px; margin: 20px 0; display: flex; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 20px; }
         .final-box { background: rgba(48, 209, 88, 0.1); border: 1px solid var(--success); padding: 20px; border-radius: 16px; margin-top: 20px; text-align: left; }
@@ -64,7 +59,7 @@
 
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta</h2>
-    <span id="rates-time" class="timestamp">Lekérés...</span>
+    <span id="rates-time" class="timestamp"></span>
     <div id="rates-result"></div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
@@ -77,9 +72,9 @@
     
     <div class="tax-settings">
         <div class="tax-row-container">
-            <div class="tax-item"><span>SZJA %</span><div class="tax-input-wrap"><input type="number" id="tax-szja" value="15" readonly><button class="lock-btn" onclick="toggleLock('tax-szja', this)">□</button></div></div>
-            <div class="tax-item"><span>TB %</span><div class="tax-input-wrap"><input type="number" id="tax-tb" value="18.5" readonly><button class="lock-btn" onclick="toggleLock('tax-tb', this)">□</button></div></div>
-            <div class="tax-item"><span>Szocho %</span><div class="tax-input-wrap"><input type="number" id="tax-szocho" value="13" readonly><button class="lock-btn" onclick="toggleLock('tax-szocho', this)">□</button></div></div>
+            <div class="tax-item"><span>SZJA %</span><div class="tax-input-wrap"><input type="number" id="tax-szja" value="15" readonly><button class="lock-btn" style="width:22px;height:22px;border:1px solid #555;background:transparent;color:white;font-size:10px;cursor:pointer;" onclick="toggleLock('tax-szja', this)">□</button></div></div>
+            <div class="tax-item"><span>TB %</span><div class="tax-input-wrap"><input type="number" id="tax-tb" value="18.5" readonly><button class="lock-btn" style="width:22px;height:22px;border:1px solid #555;background:transparent;color:white;font-size:10px;cursor:pointer;" onclick="toggleLock('tax-tb', this)">□</button></div></div>
+            <div class="tax-item"><span>Szocho %</span><div class="tax-input-wrap"><input type="number" id="tax-szocho" value="13" readonly><button class="lock-btn" style="width:22px;height:22px;border:1px solid #555;background:transparent;color:white;font-size:10px;cursor:pointer;" onclick="toggleLock('tax-szocho', this)">□</button></div></div>
         </div>
     </div>
 
@@ -102,7 +97,21 @@
 
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
 
-    // Valuta
+    async function loadRates() {
+        const resDiv = document.getElementById('rates-result');
+        try {
+            const res = await fetch(`https://api.frankfurter.app/latest?from=HUF&to=EUR,USD,GBP&_t=${Date.now()}`);
+            const data = await res.json();
+            const r = data.rates;
+            
+            // Dátum formázása: 2026-01-16 -> 2026.01.16.
+            const formattedDate = data.date.replace(/-/g, '.');
+            document.getElementById('rates-time').innerHTML = `☆ Utolsó banki adat dátuma: ${formattedDate}.`;
+
+            resDiv.innerHTML = createRateRow('🇪🇺 Euro (EUR)', 1/r.EUR) + createRateRow('🇺🇸 Dollár (USD)', 1/r.USD) + createRateRow('🇬🇧 Font (GBP)', 1/r.GBP);
+        } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
+    }
+
     function createRateRow(label, value) {
         const rowId = 'calc-' + label.substring(0,5).replace(/\s+/g, '');
         return `<div class="rate-row"><div class="rate-info"><span>${label}</span><span class="rate-val">${value.toFixed(2)} Ft</span></div><div class="calc-area"><span>×</span><input type="number" class="calc-input" oninput="updateRowCalc(this, ${value}, '${rowId}')"><span class="calc-res" id="${rowId}">0 Ft</span></div></div>`;
@@ -112,20 +121,6 @@
         document.getElementById(resId).innerText = format((parseFloat(input.value) || 0) * rate) + " Ft";
     }
 
-    async function loadRates() {
-        const resDiv = document.getElementById('rates-result');
-        try {
-            const res = await fetch(`https://api.frankfurter.app/latest?from=HUF&to=EUR,USD,GBP&_t=${Date.now()}`);
-            const data = await res.json();
-            const r = data.rates;
-            const now = new Date();
-            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-            document.getElementById('rates-time').innerHTML = `☆ Utolsó banki adat dátuma: ${data.date}<br>☆ Lekérdezve: ${timeStr}`;
-            resDiv.innerHTML = createRateRow('🇪🇺 Euro (EUR)', 1/r.EUR) + createRateRow('🇺🇸 Dollár (USD)', 1/r.USD) + createRateRow('🇬🇧 Font (GBP)', 1/r.GBP);
-        } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
-    }
-
-    // Arany
     async function loadGold() {
         const resDiv = document.getElementById('gold-result');
         try {
@@ -138,7 +133,6 @@
         } catch(e) { resDiv.innerHTML = "Hiba!"; }
     }
 
-    // Bérkalkulátor
     function toggleLock(id, btn) {
         const input = document.getElementById(id);
         input.readOnly = !input.readOnly;
@@ -150,7 +144,6 @@
         const szjaP = parseFloat(document.getElementById('tax-szja').value)/100;
         const tbP = parseFloat(document.getElementById('tax-tb').value)/100;
         const szochoP = parseFloat(document.getElementById('tax-szocho').value)/100;
-        
         let gy = parseInt(document.getElementById('gyerekek').value) || 0;
         let kedv = (gy === 1 ? 10000 : (gy === 2 ? 40000 : (gy >= 3 ? gy * 33000 : 0)));
 
@@ -161,7 +154,6 @@
             rawNetto = num;
             rawBrutto = (rawNetto - kedv) / (1 - szjaP - tbP);
         }
-
         document.getElementById('brutto-input').value = rawBrutto > 0 ? format(rawBrutto) + " Ft" : "";
         document.getElementById('netto-input').value = rawNetto > 0 ? format(rawNetto) + " Ft" : "";
         
@@ -177,7 +169,6 @@
             document.getElementById('res-osszes-teher').innerText = format(rawBrutto + szocho - rawNetto) + " Ft";
         }
     }
-
     function recalculate() { handleInput(document.getElementById('brutto-input'), 'brutto'); }
 </script>
 </body>
