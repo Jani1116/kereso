@@ -19,11 +19,12 @@
         .calc-btn { background: var(--accent); color: white; margin-top: 20px; border: none; width: 100%; padding: 15px; border-radius: 16px; font-weight: bold; cursor: pointer; }
         .hidden { display: none; }
         
-        /* Valuta Specifikus Stílusok */
-        .rates-grid { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 10px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .rates-header { display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 10px; font-size: 11px; color: #8e8e93; margin-bottom: 10px; text-transform: uppercase; text-align: center; }
+        /* Valuta elrendezés */
+        .rates-grid { display: grid; grid-template-columns: 1.4fr 0.8fr 1.2fr; gap: 8px; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+        .rates-header { display: grid; grid-template-columns: 1.4fr 0.8fr 1.2fr; gap: 8px; font-size: 10px; color: #8e8e93; margin-bottom: 10px; text-transform: uppercase; text-align: center; }
         .input-wrapper { position: relative; width: 100%; }
-        .currency-input { width: 100%; padding: 10px 25px 10px 10px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; text-align: right; }
+        .currency-label { display: block; font-size: 11px; color: #8e8e93; margin-bottom: 4px; text-align: left; }
+        .currency-input { width: 100%; padding: 10px 25px 10px 8px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; text-align: right; }
         .currency-sign { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #8e8e93; font-size: 14px; pointer-events: none; }
         .rate-val { font-size: 13px; font-weight: 500; color: #8e8e93; }
         .total-val { font-weight: bold; color: var(--success); text-align: right; font-size: 15px; }
@@ -66,7 +67,7 @@
     <h2>Valuta</h2>
     <div class="rates-header">
         <span>Mennyiség</span>
-        <span>Árfolyam (1)</span>
+        <span>Árfolyam</span>
         <span>Összeg (Ft)</span>
     </div>
     <div id="rates-result"></div>
@@ -110,29 +111,35 @@
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
     function toggleLock(inputId, btn) { const input = document.getElementById(inputId); input.readOnly = !input.readOnly; btn.classList.toggle('unlocked'); btn.innerText = input.readOnly ? "□" : "✔"; }
 
-    // --- VALUTA LOGIKA ---
+    // --- VALUTA LOGIKA (Frissebb adatokkal) ---
     async function loadRates() {
         const resDiv = document.getElementById('rates-result');
-        resDiv.innerHTML = "<p style='color:#8e8e93'>Árfolyamok lekérése...</p>";
+        resDiv.innerHTML = "<p style='color:#8e8e93'>Árfolyamok frissítése...</p>";
         try { 
-            const res = await fetch('https://open.er-api.com/v6/latest/HUF'); 
+            // Váltás a sűrűbben frissülő API-ra
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/HUF'); 
             const data = await res.json(); 
             currentRates = { EUR: 1/data.rates.EUR, USD: 1/data.rates.USD, GBP: 1/data.rates.GBP };
             renderRates();
-        } catch(e) { resDiv.innerHTML = "Hiba! Ellenőrizd az internetet."; }
+        } catch(e) { resDiv.innerHTML = "Hiba! Nincs internet kapcsolat."; }
     }
 
     function renderRates() {
         const resDiv = document.getElementById('rates-result');
-        const currs = [{id:'EUR', sign:'€'}, {id:'USD', sign:'$'}, {id:'GBP', sign:'£'}];
+        const currs = [
+            {id:'EUR', name:'Euro (EUR)', sign:'€'}, 
+            {id:'USD', name:'Dollár (USD)', sign:'$'}, 
+            {id:'GBP', name:'Font (GBP)', sign:'£'}
+        ];
         resDiv.innerHTML = currs.map(c => `
             <div class="rates-grid">
                 <div class="input-wrapper">
+                    <span class="currency-label">${c.name}</span>
                     <input type="number" id="in-${c.id}" class="currency-input" value="1" oninput="updateValuta('${c.id}')">
-                    <span class="currency-sign">${c.sign}</span>
+                    <span class="currency-sign" style="top: 70%;">${c.sign}</span>
                 </div>
-                <div class="rate-val">${currentRates[c.id].toFixed(2)} Ft</div>
-                <div class="total-val" id="tot-${c.id}">${format(currentRates[c.id])} Ft</div>
+                <div class="rate-val" style="margin-top: 15px;">${currentRates[c.id].toFixed(2)}</div>
+                <div class="total-val" id="tot-${c.id}" style="margin-top: 15px;">${format(currentRates[c.id])} Ft</div>
             </div>
         `).join('');
     }
@@ -146,7 +153,7 @@
     async function loadGold() {
         const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/HUF');
+            const res = await fetch('https://api.exchangerate-api.com/v4/latest/HUF');
             const data = await res.json();
             const hufPerUsd = 1 / data.rates.USD;
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
