@@ -102,6 +102,7 @@
 <script>
     let rawBrutto = 0; let rawNetto = 0;
     const MINIMÁLBÉR_2026 = 300000; const TB_ALAP_MINIMUM = MINIMÁLBÉR_2026 * 0.3;
+    const API_URL = 'https://v6.exchangerate-api.com/v6/60987c269188476d05988d01/latest/HUF';
     
     function showScreen(id, callback) { 
         document.querySelectorAll('.container').forEach(c => c.classList.add('hidden')); 
@@ -141,22 +142,22 @@
         const resDiv = document.getElementById('rates-result');
         resDiv.innerHTML = "Lekérés...";
         try { 
-            const res = await fetch('https://api.frankfurter.app/latest?from=HUF&to=EUR,USD,GBP&t=' + Date.now()); 
+            const res = await fetch(API_URL); 
             const data = await res.json(); 
-            const r = data.rates;
+            const r = data.conversion_rates;
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🇪🇺</i> Euro (EUR)</span> <b>${(1/r.EUR).toFixed(2)} Ft</b></div>
                 <div class="rate-box"><span><i>🇺🇸</i> Dollár (USD)</span> <b>${(1/r.USD).toFixed(2)} Ft</b></div>
                 <div class="rate-box"><span><i>🇬🇧</i> Font (GBP)</span> <b>${(1/r.GBP).toFixed(2)} Ft</b></div>`;
-        } catch(e) { resDiv.innerHTML = "Hiba! Próbáld újra."; }
+        } catch(e) { resDiv.innerHTML = "Hiba! Próbáld újra később."; }
     }
     
     async function loadGold() {
         const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
         try {
-            const hufRes = await fetch('https://api.frankfurter.app/latest?from=USD&to=HUF');
+            const hufRes = await fetch(API_URL);
             const hufData = await hufRes.json();
-            const hufPerUsd = hufData.rates.HUF;
+            const hufPerUsd = 1 / hufData.conversion_rates.USD;
             
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
             const goldData = await goldRes.json();
