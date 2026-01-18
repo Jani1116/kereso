@@ -21,7 +21,6 @@
         .input-group { text-align: left; margin-bottom: 15px; }
         label { display: block; font-weight: 500; margin-bottom: 8px; font-size: 13px; color: #8e8e93; text-transform: uppercase; }
         input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; box-sizing: border-box; text-align: right; font-size: 18px; color: white; }
-        
         .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; }
         .tax-row-container { display: flex; justify-content: space-between; gap: 10px; }
         .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
@@ -29,10 +28,8 @@
         .tax-input-wrap { display: flex; align-items: center; gap: 4px; }
         .tax-item input { width: 45px; padding: 6px 2px; font-size: 12px; text-align: center; border-radius: 6px; border: 1px solid #444; background: #1a1a1a; }
         .tax-item input:read-only { color: #888; border-color: #333; }
-        
         .lock-btn { width: 22px; height: 22px; border: 1px solid #555; background: transparent; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; }
         .lock-btn.unlocked { border-color: var(--accent); color: var(--accent); }
-
         .summary-header { background: #2c2c2e; padding: 20px; border-radius: 16px; margin: 20px 0; display: flex; justify-content: space-between; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; text-align: left; margin-top: 20px; }
         .final-box { background: rgba(48, 209, 88, 0.1); border: 1px solid var(--success); padding: 20px; border-radius: 16px; margin-top: 20px; text-align: left; }
@@ -48,16 +45,19 @@
     <button class="main-btn" onclick="showScreen('arfolyam-screen', loadRates)"><i>🏦</i> Valuta Árfolyamok</button>
     <button class="main-btn" onclick="showScreen('ber-screen')"><i>💳</i> Bérkalkulátor</button>
 </div>
+
 <div class="container hidden" id="arany-screen">
     <h2>Arany (Ft/g)</h2>
     <div id="gold-result"></div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta</h2>
     <div id="rates-result"></div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <div class="container hidden" id="ber-screen">
     <h2>Bérkalkulátor</h2>
     <div class="input-group"><label>Nettó bér</label><input type="text" id="netto-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
@@ -98,6 +98,7 @@
     </div>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
+
 <script>
     let rawBrutto = 0; let rawNetto = 0;
     const MINIMÁLBÉR_2026 = 300000; const TB_ALAP_MINIMUM = MINIMÁLBÉR_2026 * 0.3;
@@ -137,26 +138,29 @@
     }
     
     async function loadRates() {
-        const resDiv = document.getElementById('rates-result'); resDiv.innerHTML = "Lekérés...";
+        const resDiv = document.getElementById('rates-result');
+        resDiv.innerHTML = "Lekérés...";
         try { 
-            const res = await fetch('https://open.er-api.com/v6/latest/HUF'); 
+            const res = await fetch('https://api.frankfurter.app/latest?from=HUF&to=EUR,USD,GBP&t=' + Date.now()); 
             const data = await res.json(); 
             const r = data.rates;
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🇪🇺</i> Euro (EUR)</span> <b>${(1/r.EUR).toFixed(2)} Ft</b></div>
                 <div class="rate-box"><span><i>🇺🇸</i> Dollár (USD)</span> <b>${(1/r.USD).toFixed(2)} Ft</b></div>
                 <div class="rate-box"><span><i>🇬🇧</i> Font (GBP)</span> <b>${(1/r.GBP).toFixed(2)} Ft</b></div>`;
-        } catch(e) { resDiv.innerHTML = "Hiba! Nincs internet."; }
+        } catch(e) { resDiv.innerHTML = "Hiba! Próbáld újra."; }
     }
     
     async function loadGold() {
         const resDiv = document.getElementById('gold-result'); resDiv.innerHTML = "Lekérés...";
         try {
-            const res = await fetch('https://open.er-api.com/v6/latest/HUF');
-            const data = await res.json();
-            const hufPerUsd = 1 / data.rates.USD;
+            const hufRes = await fetch('https://api.frankfurter.app/latest?from=USD&to=HUF');
+            const hufData = await hufRes.json();
+            const hufPerUsd = hufData.rates.HUF;
+            
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
             const goldData = await goldRes.json();
+            
             const g = (goldData.price * hufPerUsd) / 31.1035;
             resDiv.innerHTML = `
                 <div class="rate-box"><span><i>🏆</i> 24k (999)</span> <b style="color:var(--gold)">${format(g)} Ft</b></div>
@@ -165,18 +169,8 @@
                 <div class="rate-box"><span><i>💍</i> 14k (585)</span> <b>${format(g * 0.585)} Ft</b></div>
                 <div class="rate-box"><span><i>🛠️</i> 10k (417)</span> <b>${format(g * 0.417)} Ft</b></div>
                 <div class="rate-box"><span><i>🥈</i> 9k (375)</span> <b>${format(g * 0.375)} Ft</b></div>`;
-        } catch(e) { 
-            resDiv.innerHTML = "Hiba az adatoknál. Próbáld újra később."; 
-        }
+        } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
     }
 </script>
 </body>
 </html>
-
-Annyival bőviteném, hogy az euró, dollár és font elött legyen egy tölthető mező amibe ha beirom pl. 3.85 € (a euró esetében ezt a jelet automatikusan irja oda) és a jobb oldalon jelenjen meg az aktuális árfolyammal számolt ft összeg.
-Tehát felül irás 
-Valuta.
-Alatta 3 oszlop
--irható összeg valuta megnevezésével
-- 1 (euro, dollár, font) aktuális értéke forintban
-- beirt mennyiség és aktuális ft ár szorzata
