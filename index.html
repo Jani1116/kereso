@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pénzügy 2026</title>
+    <title>Pénzügy Pro 2026</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #ffffff;
@@ -23,13 +23,10 @@
         .calc-area { display: flex; align-items: center; gap: 8px; border-top: 1px solid #333; padding-top: 10px; }
         .calc-input { width: 80px; background: #1a1a1a; border: 1px solid #444; color: white; padding: 8px; border-radius: 8px; text-align: center; }
         .calc-res { font-weight: 700; color: var(--success); flex-grow: 1; text-align: right; }
-        .timestamp { font-size: 12px; color: #8e8e93; margin-bottom: 15px; display: block; text-align: center; background: #252525; padding: 8px; border-radius: 10px; }
+        .timestamp { font-size: 12px; color: #8e8e93; margin-bottom: 15px; display: block; text-align: center; background: #252525; padding: 8px; border-radius: 10px; border: 1px solid #333; }
 
         .rate-box { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        
-        .input-group { text-align: left; margin-bottom: 15px; }
-        label { display: block; font-size: 12px; color: #8e8e93; margin-bottom: 5px; text-transform: uppercase; }
-        .full-input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2c2e; border-radius: 12px; font-size: 18px; color: white; text-align: right; box-sizing: border-box; }
+        .full-input { width: 100%; padding: 14px; border: 1px solid var(--border); background: #2c2e2e; border-radius: 12px; font-size: 18px; color: white; text-align: right; box-sizing: border-box; }
         .tax-settings { background: #252525; padding: 15px; border-radius: 16px; margin-top: 20px; }
         .tax-row-container { display: flex; justify-content: space-between; gap: 10px; }
         .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; }
@@ -69,9 +66,9 @@
 
 <div class="container hidden" id="ber-screen">
     <h2>Bérkalkulátor</h2>
-    <div class="input-group"><label>Nettó bér</label><input type="text" id="netto-input" class="full-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
-    <div class="input-group"><label>Bruttó bér</label><input type="text" id="brutto-input" class="full-input" oninput="handleInput(this, 'brutto')" placeholder="0 Ft"></div>
-    <div class="input-group"><label>18 év alatti gyerekek</label><input type="number" id="gyerekek" class="full-input" value="0" min="0" oninput="recalculate()"></div>
+    <div style="text-align:left; margin-bottom:15px;"><label style="font-size:12px; color:#8e8e93;">NETTÓ BÉR</label><input type="text" id="netto-input" class="full-input" oninput="handleInput(this, 'netto')" placeholder="0 Ft"></div>
+    <div style="text-align:left; margin-bottom:15px;"><label style="font-size:12px; color:#8e8e93;">BRUTTÓ BÉR</label><input type="text" id="brutto-input" class="full-input" oninput="handleInput(this, 'brutto')" placeholder="0 Ft"></div>
+    <div style="text-align:left; margin-bottom:15px;"><label style="font-size:12px; color:#8e8e93;">GYEREKEK SZÁMA</label><input type="number" id="gyerekek" class="full-input" value="0" min="0" oninput="recalculate()"></div>
     
     <div class="tax-settings">
         <div class="tax-row-container">
@@ -91,14 +88,12 @@
 
 <script>
     let rawBrutto = 0, rawNetto = 0;
-    
-    // Adatok betöltése memóriából (hogy megmaradjon az utolsó változás ideje)
-    let lastRates = JSON.parse(localStorage.getItem('savedRates')) || { GBP: 0, gold: 0 };
-    let lastChangeTimes = JSON.parse(localStorage.getItem('savedTimes')) || { rates: "Nincs adat", gold: "Nincs adat" };
+    let lastRates = JSON.parse(localStorage.getItem('savedRates2026')) || { GBP: 0, EUR: 0, USD: 0, gold: 0 };
+    let lastChangeTimes = JSON.parse(localStorage.getItem('savedTimes2026')) || { rates: "Nincs adat", gold: "Nincs adat" };
 
     function saveToStorage() {
-        localStorage.setItem('savedRates', JSON.stringify(lastRates));
-        localStorage.setItem('savedTimes', JSON.stringify(lastChangeTimes));
+        localStorage.setItem('savedRates2026', JSON.stringify(lastRates));
+        localStorage.setItem('savedTimes2026', JSON.stringify(lastChangeTimes));
     }
 
     function showScreen(id, callback) {
@@ -112,22 +107,28 @@
     async function loadRates() {
         const resDiv = document.getElementById('rates-result');
         try {
+            // Friss 2026-os adatok kérése
             const res = await fetch(`https://open.er-api.com/v6/latest/HUF?_t=${Date.now()}`);
             const data = await res.json();
-            const currentGbp = (1 / data.rates.GBP).toFixed(2);
+            
+            const curEur = (1 / data.rates.EUR).toFixed(2);
+            const curUsd = (1 / data.rates.USD).toFixed(2);
+            const curGbp = (1 / data.rates.GBP).toFixed(2);
 
-            // Csak akkor frissül az idő, ha valóban elmozdult az ár
-            if (currentGbp !== lastRates.GBP) {
+            // Csak akkor frissítjük az időt, ha elmozdult valamelyik fő árfolyam
+            if (curGbp !== lastRates.GBP || curEur !== lastRates.EUR) {
                 lastChangeTimes.rates = new Date().toLocaleString('hu-HU', { year:'numeric', month:'2-digit', day:'2-digit', hour: '2-digit', minute: '2-digit' });
-                lastRates.GBP = currentGbp;
+                lastRates.GBP = curGbp;
+                lastRates.EUR = curEur;
+                lastRates.USD = curUsd;
                 saveToStorage();
             }
 
             document.getElementById('rates-time').innerHTML = `☆ Utolsó árváltozás: ${lastChangeTimes.rates}`;
             resDiv.innerHTML = 
-                createRateRow('🇪🇺 Euro (EUR)', 1/data.rates.EUR) + 
-                createRateRow('🇺🇸 Dollár (USD)', 1/data.rates.USD) + 
-                createRateRow('🇬🇧 Font (GBP)', parseFloat(currentGbp));
+                createRateRow('🇪🇺 Euro (EUR)', parseFloat(curEur)) + 
+                createRateRow('🇺🇸 Dollár (USD)', parseFloat(curUsd)) + 
+                createRateRow('🇬🇧 Font (GBP)', parseFloat(curGbp));
         } catch(e) { resDiv.innerHTML = "Hiba az adatoknál."; }
     }
 
@@ -148,7 +149,7 @@
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
             const goldData = await goldRes.json();
             
-            const g = (goldData.price * hufData.rates.HUF) / 31.1035;
+            const g = (goldData.price * (1/hufData.rates.HUF)) / 31.1035;
             const currentGold = Math.round(g);
 
             if (currentGold !== lastRates.gold) {
@@ -172,10 +173,10 @@
     }
 
     function handleInput(el, type) {
-        let num = parseInt(el.value.replace(/\D/g, "")) || 0;
+        let val = el.value.replace(/\D/g, "");
+        let num = parseInt(val) || 0;
         const szjaP = parseFloat(document.getElementById('tax-szja').value)/100;
         const tbP = parseFloat(document.getElementById('tax-tb').value)/100;
-        const szochoP = parseFloat(document.getElementById('tax-szocho').value)/100;
         let gy = parseInt(document.getElementById('gyerekek').value) || 0;
         let kedv = (gy === 1 ? 10000 : (gy === 2 ? 40000 : (gy >= 3 ? gy * 33000 : 0)));
 
@@ -186,6 +187,7 @@
             rawNetto = num;
             rawBrutto = (rawNetto - kedv) / (1 - szjaP - tbP);
         }
+        
         document.getElementById('brutto-input').value = rawBrutto > 0 ? format(rawBrutto) + " Ft" : "";
         document.getElementById('netto-input').value = rawNetto > 0 ? format(rawNetto) + " Ft" : "";
         
@@ -193,7 +195,7 @@
             document.getElementById('results').classList.remove('hidden');
             const szja = Math.max(0, (rawBrutto * szjaP) - kedv);
             const tb = rawBrutto * tbP;
-            const szocho = rawBrutto * szochoP;
+            const szocho = rawBrutto * (parseFloat(document.getElementById('tax-szocho').value)/100);
             document.getElementById('h-net').innerText = format(rawNetto);
             document.getElementById('h-brut').innerText = format(rawBrutto);
             document.getElementById('res-list-left').innerHTML = `SZJA: ${format(szja)} Ft<br>TB: ${format(tb)} Ft`;
