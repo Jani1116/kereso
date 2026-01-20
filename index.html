@@ -23,7 +23,7 @@
         .calc-area { display: flex; align-items: center; gap: 8px; border-top: 1px solid #333; padding-top: 10px; }
         .calc-input { width: 80px; background: #1a1a1a; border: 1px solid #444; color: white; padding: 8px; border-radius: 8px; text-align: center; }
         .calc-res { font-weight: 700; color: var(--success); flex-grow: 1; text-align: right; }
-        .timestamp { font-size: 11px; color: #8e8e93; margin-bottom: 15px; display: block; text-align: center; }
+        .timestamp { font-size: 12px; color: #8e8e93; margin-bottom: 15px; display: block; text-align: center; background: #252525; padding: 8px; border-radius: 10px; }
 
         .rate-box { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         
@@ -53,15 +53,17 @@
 
 <div class="container hidden" id="arany-screen">
     <h2>Arany (Ft/g)</h2>
+    <span id="gold-time" class="timestamp">Változás figyelése...</span>
     <div id="gold-result"></div>
+    <button class="main-btn" onclick="loadGold()" style="padding: 10px; font-size: 13px; background: #333; margin-top: 15px;">Frissítés kérése</button>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
 
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta</h2>
-    <span id="rates-time" class="timestamp">Betöltés...</span>
+    <span id="rates-time" class="timestamp">Változás figyelése...</span>
     <div id="rates-result"></div>
-    <button class="main-btn" onclick="loadRates()" style="padding: 10px; font-size: 14px; background: #333;">Kényszerített frissítés</button>
+    <button class="main-btn" onclick="loadRates()" style="padding: 10px; font-size: 13px; background: #333; margin-top: 15px;">Frissítés kérése</button>
     <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
 </div>
 
@@ -89,8 +91,15 @@
 
 <script>
     let rawBrutto = 0, rawNetto = 0;
-    let lastRates = { GBP: 0, gold: 0 };
-    let lastChangeTimes = { rates: "Nincs adat", gold: "Nincs adat" };
+    
+    // Adatok betöltése memóriából (hogy megmaradjon az utolsó változás ideje)
+    let lastRates = JSON.parse(localStorage.getItem('savedRates')) || { GBP: 0, gold: 0 };
+    let lastChangeTimes = JSON.parse(localStorage.getItem('savedTimes')) || { rates: "Nincs adat", gold: "Nincs adat" };
+
+    function saveToStorage() {
+        localStorage.setItem('savedRates', JSON.stringify(lastRates));
+        localStorage.setItem('savedTimes', JSON.stringify(lastChangeTimes));
+    }
 
     function showScreen(id, callback) {
         document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
@@ -107,9 +116,11 @@
             const data = await res.json();
             const currentGbp = (1 / data.rates.GBP).toFixed(2);
 
+            // Csak akkor frissül az idő, ha valóban elmozdult az ár
             if (currentGbp !== lastRates.GBP) {
-                lastChangeTimes.rates = new Date().toLocaleString('hu-HU', { year:'numeric', month:'2-digit', day:'2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                lastChangeTimes.rates = new Date().toLocaleString('hu-HU', { year:'numeric', month:'2-digit', day:'2-digit', hour: '2-digit', minute: '2-digit' });
                 lastRates.GBP = currentGbp;
+                saveToStorage();
             }
 
             document.getElementById('rates-time').innerHTML = `☆ Utolsó árváltozás: ${lastChangeTimes.rates}`;
@@ -136,16 +147,22 @@
             const hufData = await hufRes.json();
             const goldRes = await fetch('https://api.gold-api.com/price/XAU');
             const goldData = await goldRes.json();
+            
             const g = (goldData.price * hufData.rates.HUF) / 31.1035;
             const currentGold = Math.round(g);
 
             if (currentGold !== lastRates.gold) {
-                lastChangeTimes.gold = new Date().toLocaleString('hu-HU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                lastChangeTimes.gold = new Date().toLocaleString('hu-HU', { year:'numeric', month:'2-digit', day:'2-digit', hour: '2-digit', minute: '2-digit' });
                 lastRates.gold = currentGold;
+                saveToStorage();
             }
 
-            resDiv.innerHTML = `<span class="timestamp">☆ Utolsó árváltozás: ${lastChangeTimes.gold}</span><div class="rate-box"><span>🏆 24k (999)</span><b style="color:var(--gold)">${format(currentGold)} Ft/g</b></div><div class="rate-box"><span>🥇 18k (750)</span><b>${format(currentGold*0.75)} Ft/g</b></div><div class="rate-box"><span>💍 14k (585)</span><b>${format(currentGold*0.585)} Ft/g</b></div>`;
-        } catch(e) { resDiv.innerHTML = "Hiba!"; }
+            document.getElementById('gold-time').innerHTML = `☆ Utolsó árváltozás: ${lastChangeTimes.gold}`;
+            resDiv.innerHTML = `
+                <div class="rate-box"><span>🏆 24k (999)</span><b style="color:var(--gold)">${format(currentGold)} Ft/g</b></div>
+                <div class="rate-box"><span>🥇 18k (750)</span><b>${format(currentGold*0.75)} Ft/g</b></div>
+                <div class="rate-box"><span>💍 14k (585)</span><b>${format(currentGold*0.585)} Ft/g</b></div>`;
+        } catch(e) { resDiv.innerHTML = "Hiba az arany adatnál."; }
     }
 
     function toggleLock(id, btn) {
