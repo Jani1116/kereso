@@ -10,27 +10,38 @@
             --accent: #007aff; --success: #30d158; --gold: #ffcc00; --border: #2c2c2e; --red: #ff453a; --gray: #8e8e93;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
-        .container { max-width: 450px; margin: auto; background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid var(--border); min-height: 85vh; display: flex; flex-direction: column; }
+        .container { max-width: 450px; margin: auto; background: var(--card); padding: 20px; border-radius: 24px; border: 1px solid var(--border); min-height: 85vh; display: flex; flex-direction: column; position: relative; }
+        
         h1 { font-size: 24px; margin-bottom: 20px; text-align: center; font-weight: 800; }
         h2 { font-size: 20px; margin-bottom: 15px; color: var(--accent); text-align: center; }
-        .main-btn { display: flex; align-items: center; justify-content: center; background: #262626; color: white; padding: 16px; margin: 10px auto; border: 1px solid var(--border); border-radius: 16px; font-size: 16px; cursor: pointer; width: 100%; font-weight: 600; text-decoration: none; }
-        .back-btn { background: transparent; color: var(--gray); margin-top: auto; border: 1px solid #333; width: 100%; padding: 12px; border-radius: 12px; cursor: pointer; }
-        .hidden { display: none; }
+        
+        .main-btn { display: flex; align-items: center; justify-content: center; background: #262626; color: white; padding: 16px; margin: 10px auto; border: 1px solid var(--border); border-radius: 16px; font-size: 16px; cursor: pointer; width: 100%; font-weight: 600; text-decoration: none; border-sizing: border-box; }
+        .main-btn:active { background: #333; transform: scale(0.98); }
+        
+        .back-btn { background: #2c2c2e; color: var(--text); margin-top: auto; border: 1px solid #444; width: 100%; padding: 14px; border-radius: 16px; cursor: pointer; font-weight: 600; }
+        
+        .hidden { display: none !important; }
+        
+        /* Bérkalkulátor elemek */
         .full-input { width: 100%; padding: 12px; border: 1px solid var(--border); background: #2c2e2e; border-radius: 12px; font-size: 18px; color: white; text-align: right; box-sizing: border-box; margin-top: 4px; }
         .tax-settings { background: #252525; padding: 12px; border-radius: 16px; margin-top: 15px; }
         .tax-row-container { display: flex; justify-content: space-between; gap: 8px; }
         .tax-item { display: flex; flex-direction: column; align-items: center; flex: 1; font-size: 9px; color: var(--gray); }
-        .tax-item input { width: 40px; background: #1a1a1a; border: 1px solid #444; color: white; text-align: center; border-radius: 4px; }
+        .tax-item input { width: 45px; background: #1a1a1a; border: 1px solid #444; color: white; text-align: center; border-radius: 4px; padding: 4px; }
+        
         .summary-header { background: #2c2c2e; padding: 15px; border-radius: 16px; margin: 15px 0; display: flex; justify-content: space-between; font-size: 13px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; text-align: left; margin-top: 15px; font-size: 13px; }
         .final-box { background: rgba(48, 209, 88, 0.1); border: 1px solid var(--success); padding: 15px; border-radius: 16px; margin-top: 15px; }
         .green-val { color: var(--success); font-size: 19px; font-weight: 700; display: block; margin-top: 5px; line-height: 1.2; }
+        
+        .rate-box { padding: 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         hr { border: 0; border-top: 1px solid #444; margin: 5px 0; }
     </style>
 </head>
 <body>
 
 <div class="container" id="main-menu">
+    <div style="font-size: 40px; text-align: center; margin-bottom: 10px;">📊</div>
     <h1>Pénzügy 2026</h1>
     <button class="main-btn" onclick="showScreen('arany-screen', loadGold)">🟡 Arany Árfolyam</button>
     <button class="main-btn" onclick="showScreen('arfolyam-screen', loadRates)">🏦 Valuta Árfolyamok</button>
@@ -71,24 +82,32 @@
         </div>
         <div class="final-box">Munkáltató kiadása nettó nélkül:<span class="green-val" id="res-osszes-teher">0 Ft</span></div>
     </div>
-    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
+    <button class="back-btn" onclick="showScreen('main-menu')">Vissza a főmenübe</button>
 </div>
 
 <div class="container hidden" id="arany-screen">
-    <h2>Arany Árfolyam</h2>
+    <h2>Arany Árfolyam (Ft/g)</h2>
     <div id="gold-result"></div>
-    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
+    <button class="back-btn" onclick="showScreen('main-menu')">Vissza a főmenübe</button>
 </div>
 
 <div class="container hidden" id="arfolyam-screen">
     <h2>Valuta Árfolyamok</h2>
     <div id="rates-result"></div>
-    <button class="back-btn" onclick="showScreen('main-menu')">Vissza</button>
+    <button class="back-btn" onclick="showScreen('main-menu')">Vissza a főmenübe</button>
 </div>
 
 <script>
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
 
+    // Navigációs függvény - Elrejti a többi képernyőt
+    function showScreen(id, callback) {
+        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if (callback) callback();
+    }
+
+    // Ezres csoportosítás gépelés közben
     function handleSmartInput(el, type) {
         let val = el.value.replace(/\D/g, "");
         if (val === "") { el.value = ""; return; }
@@ -148,29 +167,29 @@
         if(val) calculate(parseInt(val), 'brutto');
     }
 
-    function showScreen(id, cb) {
-        document.querySelectorAll('.container').forEach(c => c.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-        if(cb) cb();
-    }
-
+    // ADAT LEKÉRÉSEK
     async function loadGold() {
         const resDiv = document.getElementById('gold-result');
+        resDiv.innerHTML = "<p style='text-align:center'>Frissítés...</p>";
         try {
             const [h, g] = await Promise.all([fetch('https://open.er-api.com/v6/latest/USD'), fetch('https://api.gold-api.com/price/XAU')]);
             const dH = await h.json(); const dG = await g.json();
             const cur = Math.round((dG.price * dH.rates.HUF) / 31.1035);
-            resDiv.innerHTML = `<div class="rate-box"><span>24k</span><b>${format(cur)} Ft/g</b></div><div class="rate-box"><span>18k</span><b>${format(cur*0.75)} Ft/g</b></div><div class="rate-box"><span>14k</span><b>${format(cur*0.585)} Ft/g</b></div>`;
-        } catch(e) { resDiv.innerText = "Hiba!"; }
+            resDiv.innerHTML = `<div class="rate-box"><span>🏆 24k (999)</span><b>${format(cur)} Ft/g</b></div><div class="rate-box"><span>🥇 18k (750)</span><b>${format(cur*0.75)} Ft/g</b></div><div class="rate-box"><span>💍 14k (585)</span><b>${format(cur*0.585)} Ft/g</b></div>`;
+        } catch(e) { resDiv.innerText = "Hálózati hiba!"; }
     }
+
     async function loadRates() {
         const resDiv = document.getElementById('rates-result');
+        resDiv.innerHTML = "<p style='text-align:center'>Frissítés...</p>";
         try {
             const r = await fetch('https://open.er-api.com/v6/latest/HUF');
             const d = await r.json();
             const e = (1/d.rates.EUR).toFixed(2);
-            resDiv.innerHTML = `<div class="rate-box"><span>EUR</span><b>${e} Ft</b></div>`;
-        } catch(e) { resDiv.innerText = "Hiba!"; }
+            const u = (1/d.rates.USD).toFixed(2);
+            const g = (1/d.rates.GBP).toFixed(2);
+            resDiv.innerHTML = `<div class="rate-box"><span>🇪🇺 EUR</span><b>${e} Ft</b></div><div class="rate-box"><span>🇺🇸 USD</span><b>${u} Ft</b></div><div class="rate-box"><span>🇬🇧 GBP</span><b>${g} Ft</b></div>`;
+        } catch(e) { resDiv.innerText = "Hálózati hiba!"; }
     }
 </script>
 </body>
