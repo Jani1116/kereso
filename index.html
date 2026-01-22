@@ -49,7 +49,7 @@
     <h2>💳 Bérkalkulátor</h2>
     <div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--gray)">BRUTTÓ</label><input type="text" id="brutto-input" class="full-input" oninput="handleSmartInput(this, 'brutto')" inputmode="numeric"></div>
     <div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--gray)">NETTÓ</label><input type="text" id="netto-input" class="full-input" oninput="handleSmartInput(this, 'netto')" inputmode="numeric"></div>
-    <div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--gray)">GYEREKEK</label><input type="number" id="gyerekek" class="full-input" value="0" oninput="recalculate()"></div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--gray)">GYEREKEK (2026 kedvezmény)</label><input type="number" id="gyerekek" class="full-input" value="0" oninput="recalculate()"></div>
     <div id="results" class="hidden">
         <div class="grid">
             <div><b style="color:var(--red)">Levonások</b><div id="res-list-left"></div></div>
@@ -81,22 +81,21 @@
     function calculate(num, type) {
         const szjaP = 0.15, tbP = 0.185, szochoP = 0.13, minJ = 110000;
         let gy = parseInt(document.getElementById('gyerekek').value) || 0;
-        // 2026-os megduplázott kedvezmény adóalapra vetítve (adókedvezmény / 0.15)
-        let k = (gy === 1 ? 20000 : (gy === 2 ? 80000 : (gy >= 3 ? gy * 66000 : 0)));
+        // 2026-os megduplázott családi kedvezmény mértéke
+        let kedvezmeny = (gy === 1 ? 20000 : (gy === 2 ? 80000 : (gy >= 3 ? gy * 66000 : 0)));
         
         let br, nt;
         if (type === 'brutto') {
             br = num;
-            let szja = Math.max(0, (br * szjaP) - k);
+            let szja = Math.max(0, (br * szjaP) - kedvezmeny);
             let tb = br * tbP;
             nt = br - szja - tb;
         } else {
             nt = num;
-            br = (nt - k) / (1 - szjaP - tbP);
-            if (br < nt || isNaN(br)) br = nt / (1 - tbP); 
-            // Finomítás, ha a kedvezmény több mint az SZJA
-            let testSzja = Math.max(0, (br * szjaP) - k);
-            if(testSzja === 0) br = nt / (1 - tbP);
+            br = (nt - kedvezmeny) / (1 - szjaP - tbP);
+            if (br < nt || isNaN(br)) br = nt / (1 - tbP);
+            let tSzja = Math.max(0, (br * szjaP) - kedvezmeny);
+            if(tSzja === 0) br = nt / (1 - tbP);
         }
 
         if(type === 'brutto') document.getElementById('netto-input').value = format(nt);
@@ -104,7 +103,7 @@
 
         if (br > 0) {
             document.getElementById('results').classList.remove('hidden');
-            let s = Math.max(0, (br * szjaP) - k), t = br * tbP, sz = br * szochoP, tk = br < minJ ? (minJ - br) * 0.185 : 0;
+            let s = Math.max(0, (br * szjaP) - kedvezmeny), t = br * tbP, sz = br * szochoP, tk = br < minJ ? (minJ - br) * 0.185 : 0;
             document.getElementById('res-list-left').innerHTML = `SZJA: ${format(s)} Ft<br>TB: ${format(t)} Ft<hr><b>Összes: ${format(s+t)} Ft</b>`;
             document.getElementById('res-list-right').innerHTML = `Szocho: ${format(sz)} Ft<br>` + (tk > 0 ? `<span style="color:var(--red)">TB kieg: ${format(tk)} Ft</span>` : "");
             document.getElementById('res-osszes-teher').innerHTML = `${format(br + sz + tk - nt)} Ft<br><small style="color:var(--gray)">(Teljes: ${format(br + sz + tk)} Ft)</small>`;
@@ -117,7 +116,7 @@
         const d = document.getElementById('gold-result');
         d.innerHTML = "<p style='text-align:center'>⏳ Adatok lekérése...</p>";
         try {
-            const hRes = await fetch('https://open.er-api.com/v6/latest/USD');
+            const hRes = await fetch('https://open.er-api.com/v6/latest/USD?t=' + Date.now());
             const hData = await hRes.json();
             const usdHuf = hData.rates.HUF;
             const gRes = await fetch('https://api.gold-api.com/price/XAU');
@@ -128,21 +127,23 @@
                 <div class="rate-box"><span>🏆 24k (999)</span><b style="color:var(--gold)">${format(c)} Ft/g</b></div>
                 <div class="rate-box"><span>🥇 18k (750)</span><b>${format(c*0.75)} Ft/g</b></div>
                 <div class="rate-box"><span>💍 14k (585)</span><b>${format(c*0.585)} Ft/g</b></div>`;
-        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba! Próbáld később.</p>"; }
+        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba az arany árfolyamnál.</p>"; }
     }
 
     async function loadRates() {
         const d = document.getElementById('rates-result');
         d.innerHTML = "<p style='text-align:center'>⏳ Adatok lekérése...</p>";
         try {
-            const r = await fetch('https://open.er-api.com/v6/latest/HUF');
+            const r = await fetch('https://open.er-api.com/v6/latest/HUF?t=' + Date.now());
             const j = await r.json();
-            const s = (curr, icon) => {
-                const rate = (1 / j.rates[curr]).toFixed(2);
-                return `<div class="rate-box"><span>${icon} ${curr}</span><b style="color:var(--accent)">${rate} Ft</b></div>`;
-            };
-            d.innerHTML = s('EUR', '🇪🇺') + s('USD', '🇺🇸') + s('GBP', '🇬🇧') + s('CHF', '🇨🇭');
-        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba az árfolyamoknál.</p>"; }
+            if (j.result === "success") {
+                const s = (curr, icon) => {
+                    const rate = (1 / j.rates[curr]).toFixed(2);
+                    return `<div class="rate-box"><span>${icon} ${curr}</span><b style="color:var(--accent)">${rate} Ft</b></div>`;
+                };
+                d.innerHTML = s('EUR', '🇪🇺') + s('USD', '🇺🇸') + s('GBP', '🇬🇧') + s('CHF', '🇨🇭');
+            }
+        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba a valuta árfolyamoknál.</p>"; }
     }
 </script>
 </body>
