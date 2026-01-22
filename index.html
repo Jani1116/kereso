@@ -63,7 +63,6 @@
 <script>
     function format(num) { return Math.round(num).toLocaleString('hu-HU'); }
 
-    // Navigáció
     function navigateTo(id, callback) { history.pushState({screen: id}, ""); showScreen(id, callback); }
     window.onpopstate = function(e) { showScreen(e.state ? e.state.screen : 'main-menu'); };
     function showScreen(id, callback) { 
@@ -72,61 +71,64 @@
         if(callback) callback();
     }
 
-    // Bér kalkulátor
     function handleSmartInput(el, type) {
         let val = el.value.replace(/\D/g, "");
         if (!val) { el.value = ""; return; }
         el.value = parseInt(val).toLocaleString('hu-HU');
         calculate(parseInt(val), type);
     }
+
     function calculate(num, type) {
-        const szjaP = 0.15, tbP = 0.185, szochoP = 0.13, minJ = 90000;
+        const szjaP = 0.15, tbP = 0.185, szochoP = 0.13, minJ = 110000;
         let gy = parseInt(document.getElementById('gyerekek').value) || 0;
-        let k = (gy === 1 ? 10000 : (gy === 2 ? 40000 : (gy >= 3 ? gy * 33000 : 0)));
+        // 2026-os megduplázott kedvezmény adóalapra vetítve (adókedvezmény / 0.15)
+        let k = (gy === 1 ? 20000 : (gy === 2 ? 80000 : (gy >= 3 ? gy * 66000 : 0)));
+        
         let br, nt;
         if (type === 'brutto') {
             br = num;
-            let sl = Math.max(0, (br*szjaP)-k);
-            let tl = Math.max(0, (br*tbP)-Math.max(0, k-(br*szjaP)));
-            nt = br - sl - tl;
+            let szja = Math.max(0, (br * szjaP) - k);
+            let tb = br * tbP;
+            nt = br - szja - tb;
         } else {
-            nt = num; br = (nt-k)/(1-szjaP-tbP);
-            if(br < nt) br = nt/(1-szjaP-tbP);
+            nt = num;
+            br = (nt - k) / (1 - szjaP - tbP);
+            if (br < nt || isNaN(br)) br = nt / (1 - tbP); 
+            // Finomítás, ha a kedvezmény több mint az SZJA
+            let testSzja = Math.max(0, (br * szjaP) - k);
+            if(testSzja === 0) br = nt / (1 - tbP);
         }
+
         if(type === 'brutto') document.getElementById('netto-input').value = format(nt);
         else document.getElementById('brutto-input').value = format(br);
+
         if (br > 0) {
             document.getElementById('results').classList.remove('hidden');
-            let s = Math.max(0, (br*szjaP)-k), t = Math.max(0, (br*tbP)-Math.max(0, k-(br*szjaP))), sz = br*szochoP, tk = br < minJ ? (minJ-br)*0.185 : 0;
+            let s = Math.max(0, (br * szjaP) - k), t = br * tbP, sz = br * szochoP, tk = br < minJ ? (minJ - br) * 0.185 : 0;
             document.getElementById('res-list-left').innerHTML = `SZJA: ${format(s)} Ft<br>TB: ${format(t)} Ft<hr><b>Összes: ${format(s+t)} Ft</b>`;
-            document.getElementById('res-list-right').innerHTML = `Szocho: ${format(sz)} Ft<br>` + (tk>0 ? `<span style="color:var(--red)">TB kieg: ${format(tk)} Ft</span>` : "");
-            document.getElementById('res-osszes-teher').innerHTML = `${format(br+sz+tk-nt)} Ft<br><small style="color:var(--gray)">(Teljes: ${format(br+sz+tk)} Ft)</small>`;
+            document.getElementById('res-list-right').innerHTML = `Szocho: ${format(sz)} Ft<br>` + (tk > 0 ? `<span style="color:var(--red)">TB kieg: ${format(tk)} Ft</span>` : "");
+            document.getElementById('res-osszes-teher').innerHTML = `${format(br + sz + tk - nt)} Ft<br><small style="color:var(--gray)">(Teljes: ${format(br + sz + tk)} Ft)</small>`;
         }
     }
+
     function recalculate() { let v = document.getElementById('brutto-input').value.replace(/\D/g, ""); if(v) calculate(parseInt(v), 'brutto'); }
 
-    // ADATOK FIXÁLÁSA
     async function loadGold() {
         const d = document.getElementById('gold-result');
         d.innerHTML = "<p style='text-align:center'>⏳ Adatok lekérése...</p>";
         try {
-            // Megbízhatóbb API-k használata
             const hRes = await fetch('https://open.er-api.com/v6/latest/USD');
             const hData = await hRes.json();
             const usdHuf = hData.rates.HUF;
-
             const gRes = await fetch('https://api.gold-api.com/price/XAU');
             const gData = await gRes.json();
             const goldUsd = gData.price;
-
             const c = Math.round((goldUsd * usdHuf) / 31.1035);
             d.innerHTML = `
                 <div class="rate-box"><span>🏆 24k (999)</span><b style="color:var(--gold)">${format(c)} Ft/g</b></div>
                 <div class="rate-box"><span>🥇 18k (750)</span><b>${format(c*0.75)} Ft/g</b></div>
                 <div class="rate-box"><span>💍 14k (585)</span><b>${format(c*0.585)} Ft/g</b></div>`;
-        } catch (e) {
-            d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba! Ellenőrizd az internetet.</p>";
-        }
+        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba! Próbáld később.</p>"; }
     }
 
     async function loadRates() {
@@ -140,9 +142,7 @@
                 return `<div class="rate-box"><span>${icon} ${curr}</span><b style="color:var(--accent)">${rate} Ft</b></div>`;
             };
             d.innerHTML = s('EUR', '🇪🇺') + s('USD', '🇺🇸') + s('GBP', '🇬🇧') + s('CHF', '🇨🇭');
-        } catch (e) {
-            d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba az árfolyamoknál.</p>";
-        }
+        } catch (e) { d.innerHTML = "<p style='color:var(--red); text-align:center;'>❌ Hiba az árfolyamoknál.</p>"; }
     }
 </script>
 </body>
